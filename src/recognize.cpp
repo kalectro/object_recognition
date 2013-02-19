@@ -6,110 +6,65 @@
 
 #include "recognize.h"
 
-//Algorithm params
-bool show_keypoints_ (false);
-bool show_correspondences_ (false);
-bool use_cloud_resolution_ (false);
-bool use_hough_ (true);
-float model_ss_ (0.01f);
-float scene_ss_ (0.03f);
-float rf_rad_ (0.015f);
-float descr_rad_ (0.02f);
-float cg_size_ (0.01f);
-float cg_thresh_ (5.0f);
-
 void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-
-}
-
-void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
-{
+    scene               = PointCloud::Ptr    (new PointCloud    ());
+    scene_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+    scene_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+    scene_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
     
-}
-
-int main(int argc, char **argv)
-{
-	ros::init(argc, argv, "feature_detection");
-	ros::NodeHandle nh;
-	
-	// Create a ROS subscriber for the world point cloud
-	sub = nh.subscribe ("world_pointcloud", 1, world_cb);
-	
-	// Create a ROS subscriber for the object point cloud
-	sub = nh.subscribe ("object_pointcloud", 1, object_cb);
-
-    pcl::PointCloud<PointType>::Ptr model (new pcl::PointCloud<PointType> ());
-    pcl::PointCloud<PointType>::Ptr model_keypoints (new pcl::PointCloud<PointType> ());
-    pcl::PointCloud<PointType>::Ptr scene (new pcl::PointCloud<PointType> ());
-    pcl::PointCloud<PointType>::Ptr scene_keypoints (new pcl::PointCloud<PointType> ());
-    pcl::PointCloud<NormalType>::Ptr model_normals (new pcl::PointCloud<NormalType> ());
-    pcl::PointCloud<NormalType>::Ptr scene_normals (new pcl::PointCloud<NormalType> ());
-    pcl::PointCloud<DescriptorType>::Ptr model_descriptors (new pcl::PointCloud<DescriptorType> ());
-    pcl::PointCloud<DescriptorType>::Ptr scene_descriptors (new pcl::PointCloud<DescriptorType> ());
-    
-    //
-    //  Load clouds
-    //
-    if (pcl::io::loadPCDFile ("object.pcd", *model) < 0)
-    {
-        std::cout << "Error loading model cloud." << std::endl;
-        showHelp (argv[0]);
-        return (-1);
-    }
-    if (pcl::io::loadPCDFile ("world.pcd", *scene) < 0)
-    {
-        std::cout << "Error loading scene cloud." << std::endl;
-        showHelp (argv[0]);
-        return (-1);
-    }
-    
-    
-    //
-    //  Compute Normals
-    //
-    pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
-    norm_est.setKSearch (10);
-    norm_est.setInputCloud (model);
-    norm_est.compute (*model_normals);
-    
+    //compute normals
     norm_est.setInputCloud (scene);
     norm_est.compute (*scene_normals);
     
     //
-    //  Downsample Clouds to Extract keypoints
+    //  Downsample world to extract keypoints
     //
-    pcl::PointCloud<int> sampled_indices;
-    
-    pcl::UniformSampling<PointType> uniform_sampling;
-    uniform_sampling.setInputCloud (model);
-    uniform_sampling.setRadiusSearch (model_ss_);
-    uniform_sampling.compute (sampled_indices);
-    pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
-    std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
-    
     uniform_sampling.setInputCloud (scene);
     uniform_sampling.setRadiusSearch (scene_ss_);
     uniform_sampling.compute (sampled_indices);
     pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
     std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
     
+    //
+    // Extract descriptors
+    //
+    descr_est.setInputCloud (scene_keypoints);
+    descr_est.setInputNormals (scene_normals);
+    descr_est.setSearchSurface (scene);
+    descr_est.compute (*scene_descriptors);
+}
+
+void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+{
+    model               = PointCloud::Ptr    (new PointCloud    ());
+    model_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+    model_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+    model_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+    
+    pcl::fromROSMsg(*input, *model);
+    
+    // compute normals
+    norm_est.setInputCloud (model);
+    norm_est.compute (*model_normals);
+
+    //
+    //  Downsample object to extract keypoints
+    //
+    uniform_sampling.setInputCloud (model);
+    uniform_sampling.setRadiusSearch (model_ss_);
+    uniform_sampling.compute (sampled_indices);
+    pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
+    std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
     
     //
-    //  Compute Descriptor for keypoints
+    // Extract descriptors
     //
-    pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est;
-    descr_est.setRadiusSearch (descr_rad_);
-    
     descr_est.setInputCloud (model_keypoints);
     descr_est.setInputNormals (model_normals);
     descr_est.setSearchSurface (model);
     descr_est.compute (*model_descriptors);
     
-    descr_est.setInputCloud (scene_keypoints);
-    descr_est.setInputNormals (scene_normals);
-    descr_est.setSearchSurface (scene);
-    descr_est.compute (*scene_descriptors);
     
     //
     //  Find Model-Scene Correspondences with KdTree
@@ -136,6 +91,7 @@ int main(int argc, char **argv)
         }
     }
     std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
+    
     
     //
     //  Actual Clustering
@@ -216,7 +172,27 @@ int main(int argc, char **argv)
         printf ("\n");
         printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
     }
-    	
 
+}
+
+int main(int argc, char **argv)
+{
+	ros::init(argc, argv, "feature_detection");
+	ros::NodeHandle nh;
+	
+	// Create a ROS subscriber for the world point cloud
+	sub = nh.subscribe ("world_pointcloud", 1, world_cb);
+	
+	// Create a ROS subscriber for the object point cloud
+	sub = nh.subscribe ("object_pointcloud", 1, object_cb);
+
+    
+    //  Set parameters for normal computation
+    norm_est.setKSearch (10);
+
+    //  Compute Descriptor for keypoints
+    descr_est.setRadiusSearch (descr_rad_);
+
+    ros::spin();
 	return 0;
 }
