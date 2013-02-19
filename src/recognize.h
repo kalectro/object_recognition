@@ -26,7 +26,8 @@
 
 typedef pcl::PointXYZRGBA PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
-typedef pcl::PointCloud<pcl::Normal> NormalCloud;
+typedef pcl::Normal NormalType;
+typedef pcl::PointCloud<NormalType> NormalCloud;
 typedef pcl::ReferenceFrame RFType;
 typedef pcl::SHOT352 DescriptorType;
 typedef pcl::PointCloud<DescriptorType> DesciptorCloud;
