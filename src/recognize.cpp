@@ -25,7 +25,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     uniform_sampling.compute (sampled_indices);
     pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
     std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
-    
+
     //
     // Extract descriptors
     //
@@ -103,58 +103,16 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
     std::vector<pcl::Correspondences> clustered_corrs;
     
-    //  Using Hough3D
-    if (use_hough_)
-    {
-        //
-        //  Compute (Keypoints) Reference Frames only for Hough
-        //
-        pcl::PointCloud<RFType>::Ptr model_rf (new pcl::PointCloud<RFType> ());
-        pcl::PointCloud<RFType>::Ptr scene_rf (new pcl::PointCloud<RFType> ());
-        
-        pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, RFType> rf_est;
-        rf_est.setFindHoles (true);
-        rf_est.setRadiusSearch (rf_rad_);
-        
-        rf_est.setInputCloud (model_keypoints);
-        rf_est.setInputNormals (model_normals);
-        rf_est.setSearchSurface (model);
-        rf_est.compute (*model_rf);
-        
-        rf_est.setInputCloud (scene_keypoints);
-        rf_est.setInputNormals (scene_normals);
-        rf_est.setSearchSurface (scene);
-        rf_est.compute (*scene_rf);
-        
-        //  Clustering
-        pcl::Hough3DGrouping<PointType, PointType, RFType, RFType> clusterer;
-        clusterer.setHoughBinSize (cg_size_);
-        clusterer.setHoughThreshold (cg_thresh_);
-        clusterer.setUseInterpolation (true);
-        clusterer.setUseDistanceWeight (false);
-        
-        clusterer.setInputCloud (model_keypoints);
-        clusterer.setInputRf (model_rf);
-        clusterer.setSceneCloud (scene_keypoints);
-        clusterer.setSceneRf (scene_rf);
-        clusterer.setModelSceneCorrespondences (model_scene_corrs);
-        
-        //clusterer.cluster (clustered_corrs);
-        clusterer.recognize (rototranslations, clustered_corrs);
-    }
-    else // Using GeometricConsistency
-    {
-        pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
-        gc_clusterer.setGCSize (cg_size_);
-        gc_clusterer.setGCThreshold (cg_thresh_);
-        
-        gc_clusterer.setInputCloud (model_keypoints);
-        gc_clusterer.setSceneCloud (scene_keypoints);
-        gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
-        
-        //gc_clusterer.cluster (clustered_corrs);
-        gc_clusterer.recognize (rototranslations, clustered_corrs);
-    }
+	pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
+	gc_clusterer.setGCSize (cg_size_);
+	gc_clusterer.setGCThreshold (cg_thresh_);
+
+	gc_clusterer.setInputCloud (model_keypoints);
+	gc_clusterer.setSceneCloud (scene_keypoints);
+	gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
+
+	//gc_clusterer.cluster (clustered_corrs);
+	gc_clusterer.recognize (rototranslations, clustered_corrs);
     
     //
     //  Output results
