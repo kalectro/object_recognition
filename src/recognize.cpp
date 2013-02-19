@@ -6,205 +6,27 @@
 
 #include "recognize.h"
 
+//Algorithm params
+bool show_keypoints_ (false);
+bool show_correspondences_ (false);
+bool use_cloud_resolution_ (false);
+bool use_hough_ (true);
+float model_ss_ (0.01f);
+float scene_ss_ (0.03f);
+float rf_rad_ (0.015f);
+float descr_rad_ (0.02f);
+float cg_size_ (0.01f);
+float cg_thresh_ (5.0f);
+
 void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 
 }
 
-class FeatureCloud
+void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-	public:
-		// A bit of shorthand
-		typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-		typedef pcl::PointCloud<pcl::Normal> SurfaceNormals;
-		typedef pcl::PointCloud<pcl::FPFHSignature33> LocalFeatures;
-		typedef pcl::search::KdTree<pcl::PointXYZ> SearchMethod;
-
-		FeatureCloud () :
-			search_method_xyz_ (new SearchMethod),
-			normal_radius_ (0.02f),
-			feature_radius_ (0.02f)
-		{}
-
-	~FeatureCloud () {}
-
-	// Process the given cloud
-	void setInputCloud (PointCloud::Ptr xyz)
-	{
-		xyz_ = xyz;
-		processInput ();
-	}
-
-	// Load and process the cloud in the given PCD file
-	void loadInputCloud (void)
-	{
-		xyz_ = PointCloud::Ptr (new PointCloud);
-		pcl::fromROSMsg (object_cloud, *xyz_);
-		//pcl::io::loadPCDFile (pcd_file, *xyz_);
-		processInput ();
-	}
-
-	// Get a pointer to the cloud 3D points
-	PointCloud::Ptr getPointCloud () const
-	{
-		return (xyz_);
-	}
-
-	// Get a pointer to the cloud of 3D surface normals
-	SurfaceNormals::Ptr getSurfaceNormals () const
-	{
-		return (normals_);
-	}
-
-	// Get a pointer to the cloud of feature descriptors
-	LocalFeatures::Ptr getLocalFeatures () const
-	{
-		return (features_);
-	}
-
-	protected:
-	// Compute the surface normals and local features
-	void processInput ()
-	{
-		computeSurfaceNormals ();
-		computeLocalFeatures ();
-	}
-
-	// Compute the surface normals
-	void computeSurfaceNormals ()
-	{
-		normals_ = SurfaceNormals::Ptr (new SurfaceNormals);
-
-		pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> norm_est;
-		norm_est.setInputCloud (xyz_);
-		norm_est.setSearchMethod (search_method_xyz_);
-		norm_est.setRadiusSearch (normal_radius_);
-		norm_est.compute (*normals_);
-	}
-
-	// Compute the local feature descriptors
-	void computeLocalFeatures ()
-	{
-		features_ = LocalFeatures::Ptr (new LocalFeatures);
-
-		pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
-		fpfh_est.setInputCloud (xyz_);
-		fpfh_est.setInputNormals (normals_);
-		fpfh_est.setSearchMethod (search_method_xyz_);
-		fpfh_est.setRadiusSearch (feature_radius_);
-		fpfh_est.compute (*features_);
-	}
-
-	private:
-	// Point cloud data
-	PointCloud::Ptr xyz_;
-	SurfaceNormals::Ptr normals_;
-	LocalFeatures::Ptr features_;
-	SearchMethod::Ptr search_method_xyz_;
-
-	// Parameters
-	float normal_radius_;
-	float feature_radius_;
-};
-
-class TemplateAlignment
-{
-	public:
-
-		// A struct for storing alignment results
-		struct Result
-		{
-			float fitness_score;
-			Eigen::Matrix4f final_transformation;
-			EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-		};
-
-		TemplateAlignment () :
-		min_sample_distance_ (0.05f),
-		max_correspondence_distance_ (0.01f*0.01f),
-		nr_iterations_ (500)
-		{
-			// Intialize the parameters in the Sample Consensus Intial Alignment (SAC-IA) algorithm
-			sac_ia_.setMinSampleDistance (min_sample_distance_);
-			sac_ia_.setMaxCorrespondenceDistance (max_correspondence_distance_);
-			sac_ia_.setMaximumIterations (nr_iterations_);
-		}
-
-		~TemplateAlignment () {}
-
-		// Set the given cloud as the target to which the templates will be aligned
-		void setTargetCloud (FeatureCloud &target_cloud)
-		{
-			target_ = target_cloud;
-			sac_ia_.setInputTarget (target_cloud.getPointCloud ());
-			sac_ia_.setTargetFeatures (target_cloud.getLocalFeatures ());
-		}
-
-		// Add the given cloud to the list of template clouds
-		void addTemplateCloud (FeatureCloud &template_cloud)
-		{
-			templates_.push_back (template_cloud);
-		}
-
-		// Align the given template cloud to the target specified by setTargetCloud ()
-		void align (FeatureCloud &template_cloud, TemplateAlignment::Result &result)
-		{
-			sac_ia_.setInputCloud (template_cloud.getPointCloud ());
-			sac_ia_.setSourceFeatures (template_cloud.getLocalFeatures ());
-
-			pcl::PointCloud<pcl::PointXYZ> registration_output;
-			sac_ia_.align (registration_output);
-
-			result.fitness_score = (float) sac_ia_.getFitnessScore (max_correspondence_distance_);
-			result.final_transformation = sac_ia_.getFinalTransformation ();
-		}
-
-		// Align all of template clouds set by addTemplateCloud to the target specified by setTargetCloud ()
-		void alignAll (std::vector<TemplateAlignment::Result, Eigen::aligned_allocator<Result> > &results)
-		{
-			results.resize (templates_.size ());
-			for (size_t i = 0; i < templates_.size (); ++i)
-			{
-			  align (templates_[i], results[i]);
-			}
-		}
-
-		// Align all of template clouds to the target cloud to find the one with best alignment score
-		int findBestAlignment (TemplateAlignment::Result &result)
-		{
-			// Align all of the templates to the target cloud
-			std::vector<Result, Eigen::aligned_allocator<Result> > results;
-			alignAll (results);
-
-			// Find the template with the best (lowest) fitness score
-			float lowest_score = std::numeric_limits<float>::infinity ();
-			int best_template = 0;
-			for (size_t i = 0; i < results.size (); ++i)
-			{
-			  const Result &r = results[i];
-			  if (r.fitness_score < lowest_score)
-			  {
-				 lowest_score = r.fitness_score;
-				 best_template = (int) i;
-			  }
-			}
-
-			// Output the best alignment
-			result = results[best_template];
-			return (best_template);
-		}
-
-	private:
-		// A list of template clouds and the target to which they will be aligned
-		std::vector<FeatureCloud> templates_;
-		FeatureCloud target_;
-
-		// The Sample Consensus Initial Alignment (SAC-IA) registration routine and its parameters
-		pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> sac_ia_;
-		float min_sample_distance_;
-		float max_correspondence_distance_;
-		int nr_iterations_;
-};
+    
+}
 
 int main(int argc, char **argv)
 {
@@ -217,55 +39,184 @@ int main(int argc, char **argv)
 	// Create a ROS subscriber for the object point cloud
 	sub = nh.subscribe ("object_pointcloud", 1, object_cb);
 
-	// Preprocess the cloud by...
-	// ...removing distant points
-	const float depth_limit = 1.0;
-	pcl::PassThrough<pcl::PointXYZ> pass;
-	pass.setInputCloud (cloud);
-	pass.setFilterFieldName ("z");
-	pass.setFilterLimits (0, depth_limit);
-	pass.filter (*cloud);
-
-	// ... and downsampling the point cloud
-	const float voxel_grid_size = 0.005f;
-	pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
-	vox_grid.setInputCloud (cloud);
-	vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_voxeled (new pcl::PointCloud<pcl::PointXYZ>); 
-	vox_grid.filter (*cloud_voxeled);
-
-	// Assign to the target FeatureCloud
-	FeatureCloud target_cloud;
-	target_cloud.setInputCloud (cloud_voxeled);
-
-	// Set the TemplateAlignment inputs
-	TemplateAlignment template_align;
-	template_align.addTemplateCloud (object_templates[i]);
-	template_align.setTargetCloud (target_cloud);
-
-	// Find the best template alignment
-	TemplateAlignment::Result best_alignment;
-	int best_index = template_align.findBestAlignment (best_alignment);
-	const FeatureCloud &best_template = object_templates[best_index];
-
-	// Print the alignment fitness score (values less than 0.00002 are good)
-	printf ("Best fitness score: %f\n", best_alignment.fitness_score);
-
-	// Print the rotation matrix and translation vector
-	Eigen::Matrix3f rotation = best_alignment.final_transformation.block<3,3>(0, 0);
-	Eigen::Vector3f translation = best_alignment.final_transformation.block<3,1>(0, 3);
-
-	printf ("\n");
-	printf ("    | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
-	printf ("R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
-	printf ("    | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
-	printf ("\n");
-	printf ("t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
-
-	// Save the aligned template for visualization
-	pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
-	pcl::transformPointCloud (*best_template.getPointCloud (), transformed_cloud, best_alignment.final_transformation);
-	pcl::io::savePCDFileBinary ("output.pcd", transformed_cloud);
+    pcl::PointCloud<PointType>::Ptr model (new pcl::PointCloud<PointType> ());
+    pcl::PointCloud<PointType>::Ptr model_keypoints (new pcl::PointCloud<PointType> ());
+    pcl::PointCloud<PointType>::Ptr scene (new pcl::PointCloud<PointType> ());
+    pcl::PointCloud<PointType>::Ptr scene_keypoints (new pcl::PointCloud<PointType> ());
+    pcl::PointCloud<NormalType>::Ptr model_normals (new pcl::PointCloud<NormalType> ());
+    pcl::PointCloud<NormalType>::Ptr scene_normals (new pcl::PointCloud<NormalType> ());
+    pcl::PointCloud<DescriptorType>::Ptr model_descriptors (new pcl::PointCloud<DescriptorType> ());
+    pcl::PointCloud<DescriptorType>::Ptr scene_descriptors (new pcl::PointCloud<DescriptorType> ());
+    
+    //
+    //  Load clouds
+    //
+    if (pcl::io::loadPCDFile ("object.pcd", *model) < 0)
+    {
+        std::cout << "Error loading model cloud." << std::endl;
+        showHelp (argv[0]);
+        return (-1);
+    }
+    if (pcl::io::loadPCDFile ("world.pcd", *scene) < 0)
+    {
+        std::cout << "Error loading scene cloud." << std::endl;
+        showHelp (argv[0]);
+        return (-1);
+    }
+    
+    
+    //
+    //  Compute Normals
+    //
+    pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
+    norm_est.setKSearch (10);
+    norm_est.setInputCloud (model);
+    norm_est.compute (*model_normals);
+    
+    norm_est.setInputCloud (scene);
+    norm_est.compute (*scene_normals);
+    
+    //
+    //  Downsample Clouds to Extract keypoints
+    //
+    pcl::PointCloud<int> sampled_indices;
+    
+    pcl::UniformSampling<PointType> uniform_sampling;
+    uniform_sampling.setInputCloud (model);
+    uniform_sampling.setRadiusSearch (model_ss_);
+    uniform_sampling.compute (sampled_indices);
+    pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
+    std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
+    
+    uniform_sampling.setInputCloud (scene);
+    uniform_sampling.setRadiusSearch (scene_ss_);
+    uniform_sampling.compute (sampled_indices);
+    pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
+    std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
+    
+    
+    //
+    //  Compute Descriptor for keypoints
+    //
+    pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est;
+    descr_est.setRadiusSearch (descr_rad_);
+    
+    descr_est.setInputCloud (model_keypoints);
+    descr_est.setInputNormals (model_normals);
+    descr_est.setSearchSurface (model);
+    descr_est.compute (*model_descriptors);
+    
+    descr_est.setInputCloud (scene_keypoints);
+    descr_est.setInputNormals (scene_normals);
+    descr_est.setSearchSurface (scene);
+    descr_est.compute (*scene_descriptors);
+    
+    //
+    //  Find Model-Scene Correspondences with KdTree
+    //
+    pcl::CorrespondencesPtr model_scene_corrs (new pcl::Correspondences ());
+    
+    pcl::KdTreeFLANN<DescriptorType> match_search;
+    match_search.setInputCloud (model_descriptors);
+    
+    //  For each scene keypoint descriptor, find nearest neighbor into the model keypoints descriptor cloud and add it to the correspondences vector.
+    for (size_t i = 0; i < scene_descriptors->size (); ++i)
+    {
+        std::vector<int> neigh_indices (1);
+        std::vector<float> neigh_sqr_dists (1);
+        if (!pcl_isfinite (scene_descriptors->at (i).descriptor[0])) //skipping NaNs
+        {
+            continue;
+        }
+        int found_neighs = match_search.nearestKSearch (scene_descriptors->at (i), 1, neigh_indices, neigh_sqr_dists);
+        if(found_neighs == 1 && neigh_sqr_dists[0] < 0.25f) //  add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
+        {
+            pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
+            model_scene_corrs->push_back (corr);
+        }
+    }
+    std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
+    
+    //
+    //  Actual Clustering
+    //
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
+    std::vector<pcl::Correspondences> clustered_corrs;
+    
+    //  Using Hough3D
+    if (use_hough_)
+    {
+        //
+        //  Compute (Keypoints) Reference Frames only for Hough
+        //
+        pcl::PointCloud<RFType>::Ptr model_rf (new pcl::PointCloud<RFType> ());
+        pcl::PointCloud<RFType>::Ptr scene_rf (new pcl::PointCloud<RFType> ());
+        
+        pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, RFType> rf_est;
+        rf_est.setFindHoles (true);
+        rf_est.setRadiusSearch (rf_rad_);
+        
+        rf_est.setInputCloud (model_keypoints);
+        rf_est.setInputNormals (model_normals);
+        rf_est.setSearchSurface (model);
+        rf_est.compute (*model_rf);
+        
+        rf_est.setInputCloud (scene_keypoints);
+        rf_est.setInputNormals (scene_normals);
+        rf_est.setSearchSurface (scene);
+        rf_est.compute (*scene_rf);
+        
+        //  Clustering
+        pcl::Hough3DGrouping<PointType, PointType, RFType, RFType> clusterer;
+        clusterer.setHoughBinSize (cg_size_);
+        clusterer.setHoughThreshold (cg_thresh_);
+        clusterer.setUseInterpolation (true);
+        clusterer.setUseDistanceWeight (false);
+        
+        clusterer.setInputCloud (model_keypoints);
+        clusterer.setInputRf (model_rf);
+        clusterer.setSceneCloud (scene_keypoints);
+        clusterer.setSceneRf (scene_rf);
+        clusterer.setModelSceneCorrespondences (model_scene_corrs);
+        
+        //clusterer.cluster (clustered_corrs);
+        clusterer.recognize (rototranslations, clustered_corrs);
+    }
+    else // Using GeometricConsistency
+    {
+        pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
+        gc_clusterer.setGCSize (cg_size_);
+        gc_clusterer.setGCThreshold (cg_thresh_);
+        
+        gc_clusterer.setInputCloud (model_keypoints);
+        gc_clusterer.setSceneCloud (scene_keypoints);
+        gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
+        
+        //gc_clusterer.cluster (clustered_corrs);
+        gc_clusterer.recognize (rototranslations, clustered_corrs);
+    }
+    
+    //
+    //  Output results
+    //
+    std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+    for (size_t i = 0; i < rototranslations.size (); ++i)
+    {
+        std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
+        std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
+        
+        // Print the rotation matrix and translation vector
+        Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0, 0);
+        Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+        
+        printf ("\n");
+        printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+        printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+        printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+        printf ("\n");
+        printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+    }
+    	
 
 	return 0;
 }

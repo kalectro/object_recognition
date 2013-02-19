@@ -9,25 +9,27 @@
 #include "ros/ros.h"
 #include <stdio.h>
 #include <string>
-#include <limits>
-#include <vector>
-#include <Eigen/Core>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/correspondence.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/shot_omp.h>
+#include <pcl/features/board.h>
+#include <pcl/keypoints/uniform_sampling.h>
+#include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/recognition/cg/geometric_consistency.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/filters/passthrough.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/features/fpfh.h>
-#include <pcl/registration/ia_ransac.h>
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/common/transforms.h>
+#include <pcl/console/parse.h>
+
+typedef pcl::PointXYZRGBA PointType;
+typedef pcl::Normal NormalType;
+typedef pcl::ReferenceFrame RFType;
+typedef pcl::SHOT352 DescriptorType;
 
 using namespace std;
-
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-typedef pcl::PointCloud<pcl::Normal> SurfaceNormals;
-typedef pcl::PointCloud<pcl::FPFHSignature33> LocalFeatures;
-typedef pcl::search::KdTree<pcl::PointXYZ> SearchMethod;
 
 // Timing variables
 ros::Time start;
@@ -37,7 +39,6 @@ ros::Time stop;
 ros::Subscriber sub;
 
 // Initialize Publisher for object coefficients in world
-ros::Publisher obj_coeffs;
+ros::Publisher obj_pose;
 
-// Cloud of the object
-FeatureCloud object_cloud;
+
