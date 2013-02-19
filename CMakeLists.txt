@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_recognition)
 
-find_package(catkin REQUIRED COMPONENTS pcl roscpp rostime)
+find_package(catkin REQUIRED COMPONENTS pcl pcl_ros roscpp rostime)
 
 catkin_package(
   CATKIN_DEPENDS pcl roscpp rostime
-  DEPENDS system_lib
+  DEPENDS system_lib pcl_ros
+)
+
+## Specify additional locations of header files
+include_directories(include
+  ${catkin_INCLUDE_DIRS}
 )
 
 add_executable(object_recognition_node src/recognize.cpp)
