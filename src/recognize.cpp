@@ -8,23 +8,25 @@
 
 void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-    scene               = PointCloud::Ptr    (new PointCloud    ());
-    scene_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-    scene_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-    scene_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
-    
-    //compute normals
-    norm_est.setInputCloud (scene);
-    norm_est.compute (*scene_normals);
-    
-    //
-    //  Downsample world to extract keypoints
-    //
-    uniform_sampling.setInputCloud (scene);
-    uniform_sampling.setRadiusSearch (scene_ss_);
-    uniform_sampling.compute (sampled_indices);
-    pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
-    std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
+	scene               = PointCloud::Ptr    (new PointCloud    ());
+	scene_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+	scene_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+	scene_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+
+	pcl::fromROSMsg(*input, *scene);
+
+	//compute normals
+	norm_est.setInputCloud (scene);
+	norm_est.compute (*scene_normals);
+
+	//
+	//  Downsample world to extract keypoints
+	//
+	uniform_sampling.setInputCloud (scene);
+	uniform_sampling.setRadiusSearch (scene_ss_);
+	uniform_sampling.compute (sampled_indices);
+	pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
+	std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
 
     //
     // Extract descriptors
