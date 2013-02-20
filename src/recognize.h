@@ -39,7 +39,8 @@ ros::Time start;
 ros::Time stop;
 
 // Initialize Subscriber
-ros::Subscriber sub;
+ros::Subscriber sub_world;
+ros::Subscriber sub_object;
 
 // Initialize Publisher for object coefficients in world
 ros::Publisher obj_pose;

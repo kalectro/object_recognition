@@ -143,10 +143,10 @@ int main(int argc, char **argv)
 	ros::NodeHandle nh;
 	
 	// Create a ROS subscriber for the world point cloud
-	sub = nh.subscribe ("world_pointcloud", 1, world_cb);
+	sub_world = nh.subscribe ("world_pointcloud", 1, world_cb);
 	
 	// Create a ROS subscriber for the object point cloud
-	sub = nh.subscribe ("object_pointcloud", 1, object_cb);
+	sub_object = nh.subscribe ("object_pointcloud", 1, object_cb);
 
     
     //  Set parameters for normal computation
