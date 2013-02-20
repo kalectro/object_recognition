@@ -1,0 +1,5 @@
+<launch>
+	<node name="object_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="/home/frk1pal/test_ws/src/ros_object_recognition/object.pcd 4" >
+		<remap from="/cloud_pcd" to="object_pointcloud" />
+	</node>
+</launch>
