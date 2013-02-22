@@ -12,7 +12,7 @@
 
 using namespace std;
 
-string pcd_path, pcd_path_temp;
+string pcd_path, pcd_path_temp, tf_frame;
 
 //Initialize Publisher
 ros::Publisher pub;
@@ -60,9 +60,13 @@ int main (int argc, char** argv)
 			}
 		}
 
+		// if tf parameter does not exist, use default poincloud_tf
+		if (!nh.getParam("tf_frame", tf_frame))
+			tf_frame = "/pointcloud_tf";
+
 		// Fill in the header
 		(*cloud).header.stamp = ros::Time::now();
-    	(*cloud).header.frame_id = "pointcloud_frame";
+		(*cloud).header.frame_id = tf_frame;
 
 		// Publish the model coefficients
 		pub.publish (*cloud);

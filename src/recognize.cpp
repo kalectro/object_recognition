@@ -72,6 +72,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   descr_est.setInputNormals (scene_normals);
   descr_est.setSearchSurface (scene);
   descr_est.compute (*scene_descriptors);
+
 }
 
 void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
@@ -207,19 +208,29 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
 
 		// convert Eigen matricies into ROS Pose message
-		geometry_msgs::Pose object_pose;
-		object_pose.position.x = translation (0);
-		object_pose.position.y = translation (1);
-		object_pose.position.z = translation (2);
+		tf::Vector3 object_offset;
+		tf::Quaternion object_rotation;
+		object_offset[0] = translation (0);
+		object_offset[1] = translation (1);
+		object_offset[2] = translation (2);
 		// convert rotation matrix to quaternion
 		Eigen::Quaternionf quaternion (rotation);
-		object_pose.orientation.x = quaternion.x();
-		object_pose.orientation.y = quaternion.y();
-		object_pose.orientation.z = quaternion.z();
-		object_pose.orientation.w = quaternion.w();
+		object_rotation[0] = quaternion.x();
+		object_rotation[1] = quaternion.y();
+		object_rotation[2] = quaternion.z();
+		object_rotation[3] = quaternion.w();
 
-		pub_object_pose.publish (object_pose);
-
+		static tf::TransformBroadcaster br;
+		tf::Transform transform;
+		transform.setOrigin (object_offset);
+		transform.setRotation (object_rotation);
+		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
+	
+		while(1)
+		{
+			br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
+			sleep(1);
+		}
   }
 
 }
@@ -234,9 +245,6 @@ int main(int argc, char **argv)
 	
 	// Create a ROS subscriber for the object point cloud
 	sub_object = nh.subscribe ("object_pointcloud", 1, object_cb);
-
-	// Create a ROS publisher for the object pose
-	pub_object_pose = nh.advertise<geometry_msgs::Pose> ("object_pose", 1);
 
   //  uSet parameters for normal computation
   norm_est.setKSearch (10);

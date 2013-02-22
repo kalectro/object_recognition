@@ -24,6 +24,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
 #include <geometry_msgs/Pose.h>
+#include <tf/transform_broadcaster.h>
 
 typedef pcl::PointXYZRGBA PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -43,8 +44,8 @@ ros::Time stop;
 ros::Subscriber sub_world;
 ros::Subscriber sub_object;
 
-// Initialize Publisher for object coefficients in world
-ros::Publisher pub_object_pose;
+// Initialize Publisher for object tf frame in world
+ros::Publisher pub_object_tf;
 
 //Algorithm params
 float model_ss_, scene_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
