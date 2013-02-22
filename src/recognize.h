@@ -47,16 +47,7 @@ ros::Subscriber sub_object;
 ros::Publisher pub_object_pose;
 
 //Algorithm params
-bool show_keypoints_ (false);
-bool show_correspondences_ (false);
-bool use_cloud_resolution_ (false);
-bool use_hough_ (true);
-float model_ss_ (0.01f);
-float scene_ss_ (0.03f);
-float rf_rad_ (0.015f);
-float descr_rad_ (0.02f);
-float cg_size_ (0.01f);
-float cg_thresh_ (5.0f);
+float model_ss_, scene_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
 PointCloud::Ptr model;

@@ -65,9 +65,11 @@ cout << "asdf1" << endl;
     // Extract descriptors
     //
     descr_est.setInputCloud (scene_keypoints);
+    descr_est.setRadiusSearch (descr_rad_);
     descr_est.setInputNormals (scene_normals);
     descr_est.setSearchSurface (scene);
     descr_est.compute (*scene_descriptors);
+
 cout << "asdf2" << endl;
 }
 
@@ -221,13 +223,20 @@ int main(int argc, char **argv)
 	// Create a ROS subscriber for the object point cloud
 	sub_object = nh.subscribe ("object_pointcloud", 1, object_cb);
 
-    
-    //  Set parameters for normal computation
+	// Create a ROS publisher for the object pose
+	pub_object_pose = nh.advertise<geometry_msgs::Pose> ("object_pose", 1);
+
+    //  uSet parameters for normal computation
     norm_est.setKSearch (10);
 
-    //  Compute Descriptor for keypoints
-    descr_est.setRadiusSearch (descr_rad_);
+	//Algorithm params
+	model_ss_ = 0.01f;
+	scene_ss_ = 0.03f;
+	rf_rad_ = 0.015f;
+	descr_rad_ = 0.02f;
+	cg_size_ = 0.01f;
+	cg_thresh_ = 5.0f;
 
-    ros::spin();
+   ros::spin();
 	return 0;
 }
