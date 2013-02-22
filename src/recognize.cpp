@@ -191,6 +191,21 @@ cout << "asdf5" << endl;
       printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
       printf ("\n");
       printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+
+		// convert Eigen matricies into ROS Pose message
+		geometry_msgs::Pose object_pose;
+		object_pose.position.x = translation (0);
+		object_pose.position.y = translation (1);
+		object_pose.position.z = translation (2);
+		// convert rotation matrix to quaternion
+		Eigen::Quaternionf quaternion (rotation);
+		object_pose.orientation.x = quaternion.x();
+		object_pose.orientation.y = quaternion.y();
+		object_pose.orientation.z = quaternion.z();
+		object_pose.orientation.w = quaternion.w();
+
+		pub_object_pose.publish (object_pose);
+
   }
 
 }

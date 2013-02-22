@@ -23,6 +23,7 @@
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
+#include <geometry_msgs/Pose.h>
 
 typedef pcl::PointXYZRGBA PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -43,7 +44,7 @@ ros::Subscriber sub_world;
 ros::Subscriber sub_object;
 
 // Initialize Publisher for object coefficients in world
-ros::Publisher obj_pose;
+ros::Publisher pub_object_pose;
 
 //Algorithm params
 bool show_keypoints_ (false);
