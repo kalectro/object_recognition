@@ -52,6 +52,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	norm_est.setInputCloud (scene);
 	norm_est.compute (*scene_normals);
 
+
 	//
 	//  Downsample world to extract keypoints
 	//
@@ -60,15 +61,17 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	uniform_sampling.compute (sampled_indices);
 	pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
 	std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
-cout << "... extracting descriptors from world ..." << endl;
-    //
-    // Extract descriptors
-    //
-    descr_est.setInputCloud (scene_keypoints);
-    descr_est.setRadiusSearch (descr_rad_);
-    descr_est.setInputNormals (scene_normals);
-    descr_est.setSearchSurface (scene);
-    descr_est.compute (*scene_descriptors);
+
+
+  //
+  // Extract descriptors
+  //
+	cout << "... extracting descriptors from world ..." << endl;
+  descr_est.setInputCloud (scene_keypoints);
+  descr_est.setRadiusSearch (descr_rad_);
+  descr_est.setInputNormals (scene_normals);
+  descr_est.setSearchSurface (scene);
+  descr_est.compute (*scene_descriptors);
 }
 
 void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
@@ -102,32 +105,41 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 		std::cout << "SHOT descriptor radius: " << descr_rad_ << std::endl;
 		std::cout << "Clustering bin size:    " << cg_size_ << std::endl << std::endl;
 	}
-cout << "... computing normals ..." << endl;
+
+
+	//
 	// compute normals
+	//
+	cout << "... computing normals ..." << endl;
 	norm_est.setInputCloud (model);
 	norm_est.compute (*model_normals);
-cout << "... downsampling ..." << endl;
+
+
 	//
 	//  Downsample object to extract keypoints
 	//
+	cout << "... downsampling ..." << endl;
 	uniform_sampling.setInputCloud (model);
 	uniform_sampling.setRadiusSearch (model_ss_);
 	uniform_sampling.compute (sampled_indices);
 	pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
 	std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
-cout << "... extracting descriptors from model ..." << endl;
+
+
 	//
 	// Extract descriptors
 	//
+	cout << "... extracting descriptors from model ..." << endl;
 	descr_est.setInputCloud (model_keypoints);
 	descr_est.setInputNormals (model_normals);
 	descr_est.setSearchSurface (model);
 	descr_est.compute (*model_descriptors);
 	
-cout << "... finding correspondences ..." << endl;
+
 	//
 	//  Find Model-Scene Correspondences with KdTree
 	//
+	cout << "... finding correspondences ..." << endl;
 	pcl::CorrespondencesPtr model_scene_corrs (new pcl::Correspondences ());
 	
 	pcl::KdTreeFLANN<DescriptorType> match_search;
@@ -153,14 +165,15 @@ cout << "... finding correspondences ..." << endl;
 			model_scene_corrs->push_back (corr);
 		}
 	}
-		std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
+	std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
     
-cout << "... clustering ..." << endl;    
-    //
-    //  Actual Clustering
-    //
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
-    std::vector<pcl::Correspondences> clustered_corrs;
+
+  //
+  //  Actual Clustering
+  //
+	cout << "... clustering ..." << endl;    
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
+  std::vector<pcl::Correspondences> clustered_corrs;
     
 	pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
 	gc_clusterer.setGCSize (cg_size_);
@@ -170,8 +183,8 @@ cout << "... clustering ..." << endl;
 	gc_clusterer.setSceneCloud (scene_keypoints);
 	gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
 
-	//gc_clusterer.cluster (clustered_corrs);
 	gc_clusterer.recognize (rototranslations, clustered_corrs);
+
     
   //
   //  Output results
@@ -179,19 +192,19 @@ cout << "... clustering ..." << endl;
   std::cout << "Model instances found: " << rototranslations.size () << std::endl;
   for (size_t i = 0; i < rototranslations.size (); ++i)
   {
-      std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
-      std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
-      
-      // Print the rotation matrix and translation vector
-      Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0, 0);
-      Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
-      
-      printf ("\n");
-      printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
-      printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
-      printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
-      printf ("\n");
-      printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+    std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
+    std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
+    
+    // Print the rotation matrix and translation vector
+    Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0, 0);
+    Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+    
+    printf ("\n");
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+    printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+    printf ("\n");
+    printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
 
 		// convert Eigen matricies into ROS Pose message
 		geometry_msgs::Pose object_pose;
@@ -225,8 +238,8 @@ int main(int argc, char **argv)
 	// Create a ROS publisher for the object pose
 	pub_object_pose = nh.advertise<geometry_msgs::Pose> ("object_pose", 1);
 
-    //  uSet parameters for normal computation
-    norm_est.setKSearch (10);
+  //  uSet parameters for normal computation
+  norm_est.setKSearch (10);
 
 	//Algorithm params
 	model_ss_ = 0.01f;
@@ -237,6 +250,6 @@ int main(int argc, char **argv)
 	cg_thresh_ = 5.0f;
 	use_cloud_resolution_ = true;
 
-   ros::spin();
+	ros::spin();
 	return 0;
 }
