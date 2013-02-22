@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(object_recognition)
 
 find_package(catkin REQUIRED COMPONENTS roscpp rostime pcl_ros sensor_msgs)
-find_package(pcl 1.6.1 REQUIRED)
+find_package(PCL 1.7.0 REQUIRED)
 
 catkin_package(
   CATKIN_DEPENDS roscpp rostime pcl_ros sensor_msgs
