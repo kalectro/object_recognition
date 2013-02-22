@@ -60,7 +60,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	uniform_sampling.compute (sampled_indices);
 	pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
 	std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
-cout << "asdf1" << endl;
+cout << "... extracting descriptors from world ..." << endl;
     //
     // Extract descriptors
     //
@@ -69,8 +69,6 @@ cout << "asdf1" << endl;
     descr_est.setInputNormals (scene_normals);
     descr_est.setSearchSurface (scene);
     descr_est.compute (*scene_descriptors);
-
-cout << "asdf2" << endl;
 }
 
 void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
@@ -81,34 +79,34 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	model_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
 
 	pcl::fromROSMsg(*input, *model);
-	cout << "asdf3" << endl;
 
-	//
-  //  Set up resolution invariance
-  //
-	float resolution = static_cast<float> (computeCloudResolution (model));
-	if (resolution != 0.0f)
+	if (use_cloud_resolution_)
 	{
-		model_ss_   *= resolution;
-		scene_ss_   *= resolution;
-		rf_rad_     *= resolution;
-		descr_rad_  *= resolution;
-		cg_size_    *= resolution;
+		//
+		//  Set up resolution invariance
+		//
+		float resolution = static_cast<float> (computeCloudResolution (scene));
+		if (resolution != 0.0f)
+		{
+			model_ss_   *= resolution;
+			scene_ss_   *= resolution;
+			rf_rad_     *= resolution;
+			descr_rad_  *= resolution;
+			cg_size_    *= resolution;
+		}
+
+		std::cout << "Model resolution:       " << resolution << std::endl;
+		std::cout << "Model sampling size:    " << model_ss_ << std::endl;
+		std::cout << "Scene sampling size:    " << scene_ss_ << std::endl;
+		std::cout << "LRF support radius:     " << rf_rad_ << std::endl;
+		std::cout << "SHOT descriptor radius: " << descr_rad_ << std::endl;
+		std::cout << "Clustering bin size:    " << cg_size_ << std::endl << std::endl;
 	}
-
-	std::cout << "Model resolution:       " << resolution << std::endl;
-	std::cout << "Model sampling size:    " << model_ss_ << std::endl;
-	std::cout << "Scene sampling size:    " << scene_ss_ << std::endl;
-	std::cout << "LRF support radius:     " << rf_rad_ << std::endl;
-	std::cout << "SHOT descriptor radius: " << descr_rad_ << std::endl;
-	std::cout << "Clustering bin size:    " << cg_size_ << std::endl << std::endl;
-
-
-
+cout << "... computing normals ..." << endl;
 	// compute normals
 	norm_est.setInputCloud (model);
 	norm_est.compute (*model_normals);
-cout << "asdf4" << endl;
+cout << "... downsampling ..." << endl;
 	//
 	//  Downsample object to extract keypoints
 	//
@@ -117,7 +115,7 @@ cout << "asdf4" << endl;
 	uniform_sampling.compute (sampled_indices);
 	pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
 	std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
-cout << "asdf5" << endl;
+cout << "... extracting descriptors from model ..." << endl;
 	//
 	// Extract descriptors
 	//
@@ -126,6 +124,7 @@ cout << "asdf5" << endl;
 	descr_est.setSearchSurface (model);
 	descr_est.compute (*model_descriptors);
 	
+cout << "... finding correspondences ..." << endl;
 	//
 	//  Find Model-Scene Correspondences with KdTree
 	//
@@ -156,7 +155,7 @@ cout << "asdf5" << endl;
 	}
 		std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
     
-    
+cout << "... clustering ..." << endl;    
     //
     //  Actual Clustering
     //
@@ -236,6 +235,7 @@ int main(int argc, char **argv)
 	descr_rad_ = 0.02f;
 	cg_size_ = 0.01f;
 	cg_thresh_ = 5.0f;
+	use_cloud_resolution_ = true;
 
    ros::spin();
 	return 0;

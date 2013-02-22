@@ -48,6 +48,7 @@ ros::Publisher pub_object_pose;
 
 //Algorithm params
 float model_ss_, scene_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
+bool use_cloud_resolution_;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
 PointCloud::Ptr model;
