@@ -6,40 +6,7 @@
 
 #include "recognize.h"
 
-double
-computeCloudResolution (const pcl::PointCloud<PointType>::ConstPtr &cloud)
-{
-  double res = 0.0;
-  int n_points = 0;
-  int nres;
-  std::vector<int> indices (2);
-  std::vector<float> sqr_distances (2);
-  pcl::search::KdTree<PointType> tree;
-  tree.setInputCloud (cloud);
-
-  for (size_t i = 0; i < cloud->size (); ++i)
-  {
-    if (! pcl_isfinite ((*cloud)[i].x))
-    {
-      continue;
-    }
-    //Considering the second neighbor since the first is the point itself.
-    nres = tree.nearestKSearch (i, 2, indices, sqr_distances);
-    if (nres == 2)
-    {
-      res += sqrt (sqr_distances[1]);
-      ++n_points;
-    }
-  }
-  if (n_points != 0)
-  {
-    res /= n_points;
-  }
-  return res;
-}
-
-
-void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	scene               = PointCloud::Ptr    (new PointCloud    ());
 	scene_keypoints     = PointCloud::Ptr    (new PointCloud    ());
@@ -49,6 +16,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	pcl::fromROSMsg(*input, *scene);
 
 	//compute normals
+	cout << "... computing normals from world ..." << endl;
 	norm_est.setInputCloud (scene);
 	norm_est.compute (*scene_normals);
 
@@ -60,7 +28,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	uniform_sampling.setRadiusSearch (scene_ss_);
 	uniform_sampling.compute (sampled_indices);
 	pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
-	std::cout << "Scene total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
+	std::cout << "World total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
 
 
   //
@@ -75,7 +43,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 }
 
-void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	// check if world was already processed
 	if (scene_descriptors == NULL)
@@ -91,34 +59,10 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 	pcl::fromROSMsg(*input, *model);
 
-	if (use_cloud_resolution_)
-	{
-		//
-		//  Set up resolution invariance
-		//
-		float resolution = static_cast<float> (computeCloudResolution (scene));
-		if (resolution != 0.0f)
-		{
-			model_ss_   *= resolution;
-			scene_ss_   *= resolution;
-			rf_rad_     *= resolution;
-			descr_rad_  *= resolution;
-			cg_size_    *= resolution;
-		}
-
-		std::cout << "Model resolution:       " << resolution << std::endl;
-		std::cout << "Model sampling size:    " << model_ss_ << std::endl;
-		std::cout << "Scene sampling size:    " << scene_ss_ << std::endl;
-		std::cout << "LRF support radius:     " << rf_rad_ << std::endl;
-		std::cout << "SHOT descriptor radius: " << descr_rad_ << std::endl;
-		std::cout << "Clustering bin size:    " << cg_size_ << std::endl << std::endl;
-	}
-
-
 	//
 	// compute normals
 	//
-	cout << "... computing normals ..." << endl;
+	cout << "... computing normals from object ..." << endl;
 	norm_est.setInputCloud (model);
 	norm_est.compute (*model_normals);
 
@@ -126,7 +70,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	//
 	//  Downsample object to extract keypoints
 	//
-	cout << "... downsampling ..." << endl;
+	cout << "... downsampling object ..." << endl;
 	uniform_sampling.setInputCloud (model);
 	uniform_sampling.setRadiusSearch (model_ss_);
 	uniform_sampling.compute (sampled_indices);
@@ -137,7 +81,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	//
 	// Extract descriptors
 	//
-	cout << "... extracting descriptors from model ..." << endl;
+	cout << "... extracting descriptors from object ..." << endl;
 	descr_est.setInputCloud (model_keypoints);
 	descr_est.setInputNormals (model_normals);
 	descr_est.setSearchSurface (model);
@@ -263,7 +207,6 @@ int main(int argc, char **argv)
 	descr_rad_ = 0.02;
 	cg_size_ = 0.01;
 	cg_thresh_ = 5.0;
-	use_cloud_resolution_ = false;
 
 	ros::spin();
 	return 0;
