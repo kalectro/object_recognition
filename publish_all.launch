@@ -7,7 +7,7 @@
 
 	<node name="object_publisher"  pkg="object_recognition" type="create_pointcloud_node" >				
 	<param name="pcd_path" value="/home/frk1pal/catkin_ws/src/ros_object_recognition/object.pcd" />
-	<param name="tf_frame" value="/object" />
+	<param name="tf_frame" value="/object_tf" />
 	<remap from="object_publisher/pointcloud" to="object_pointcloud" />									
 	</node>																														
 

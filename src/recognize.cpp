@@ -77,6 +77,13 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
+	// check if world was already processed
+	if (scene_descriptors == NULL)
+	{
+		ROS_WARN("Received an object pointcloud before having a world pointcloud to compare");
+		return;
+	}
+
 	model               = PointCloud::Ptr    (new PointCloud    ());
 	model_keypoints     = PointCloud::Ptr    (new PointCloud    ());
 	model_normals       = NormalCloud::Ptr   (new NormalCloud   ());
@@ -135,7 +142,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	descr_est.setInputNormals (model_normals);
 	descr_est.setSearchSurface (model);
 	descr_est.compute (*model_descriptors);
-	
+
 
 	//
 	//  Find Model-Scene Correspondences with KdTree
@@ -226,7 +233,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 		transform.setRotation (object_rotation);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
 	
-		while(1)
+		while (ros::ok())
 		{
 			br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
 			sleep(1);
@@ -250,13 +257,13 @@ int main(int argc, char **argv)
   norm_est.setKSearch (10);
 
 	//Algorithm params
-	model_ss_ = 0.01f;
-	scene_ss_ = 0.03f;
-	rf_rad_ = 0.015f;
-	descr_rad_ = 0.02f;
-	cg_size_ = 0.01f;
-	cg_thresh_ = 5.0f;
-	use_cloud_resolution_ = true;
+	model_ss_ = 0.01;
+	scene_ss_ = 0.03;
+	rf_rad_ = 0.015;
+	descr_rad_ = 0.02;
+	cg_size_ = 0.01;
+	cg_thresh_ = 5.0;
+	use_cloud_resolution_ = false;
 
 	ros::spin();
 	return 0;
