@@ -23,6 +23,8 @@
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
+#include <geometry_msgs/Pose.h>
+#include <tf/transform_broadcaster.h>
 
 typedef pcl::PointXYZRGBA PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -42,32 +44,23 @@ ros::Time stop;
 ros::Subscriber sub_world;
 ros::Subscriber sub_object;
 
-// Initialize Publisher for object coefficients in world
-ros::Publisher obj_pose;
+// Initialize Publisher for object tf frame in world
+ros::Publisher pub_object_tf;
 
 //Algorithm params
-bool show_keypoints_ (false);
-bool show_correspondences_ (false);
-bool use_cloud_resolution_ (false);
-bool use_hough_ (true);
-float model_ss_ (0.01f);
-float scene_ss_ (0.03f);
-float rf_rad_ (0.015f);
-float descr_rad_ (0.02f);
-float cg_size_ (0.01f);
-float cg_thresh_ (5.0f);
+float object_ss_, world_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
-PointCloud::Ptr model;
-PointCloud::Ptr model_keypoints;
-PointCloud::Ptr scene;
-PointCloud::Ptr scene_keypoints;
-NormalCloud::Ptr model_normals;
-NormalCloud::Ptr scene_normals;
-DesciptorCloud::Ptr model_descriptors;
-DesciptorCloud::Ptr scene_descriptors;
+PointCloud::Ptr object;
+PointCloud::Ptr object_keypoints;
+PointCloud::Ptr world;
+PointCloud::Ptr world_keypoints;
+NormalCloud::Ptr object_normals;
+NormalCloud::Ptr world_normals;
+DesciptorCloud::Ptr object_descriptors;
+DesciptorCloud::Ptr world_descriptors;
 
-pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
-pcl::PointCloud<int> sampled_indices;
-pcl::UniformSampling<PointType> uniform_sampling;
-pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est;
+pcl::NormalEstimationOMP<PointType, NormalType> norm_est_world, norm_est_object;
+pcl::PointCloud<int> sampled_indices_world, sampled_indices_object;
+pcl::UniformSampling<PointType> uniform_sampling_object, uniform_sampling_world;
+pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est_object, descr_est_world;
