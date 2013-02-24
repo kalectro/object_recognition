@@ -48,20 +48,19 @@ ros::Subscriber sub_object;
 ros::Publisher pub_object_tf;
 
 //Algorithm params
-float model_ss_, scene_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
-bool use_cloud_resolution_;
+float object_ss_, world_ss_, rf_rad_, descr_rad_, cg_size_, cg_thresh_;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
-PointCloud::Ptr model;
-PointCloud::Ptr model_keypoints;
-PointCloud::Ptr scene;
-PointCloud::Ptr scene_keypoints;
-NormalCloud::Ptr model_normals;
-NormalCloud::Ptr scene_normals;
-DesciptorCloud::Ptr model_descriptors;
-DesciptorCloud::Ptr scene_descriptors;
+PointCloud::Ptr object;
+PointCloud::Ptr object_keypoints;
+PointCloud::Ptr world;
+PointCloud::Ptr world_keypoints;
+NormalCloud::Ptr object_normals;
+NormalCloud::Ptr world_normals;
+DesciptorCloud::Ptr object_descriptors;
+DesciptorCloud::Ptr world_descriptors;
 
-pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
-pcl::PointCloud<int> sampled_indices;
-pcl::UniformSampling<PointType> uniform_sampling;
-pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est;
+pcl::NormalEstimationOMP<PointType, NormalType> norm_est_world, norm_est_object;
+pcl::PointCloud<int> sampled_indices_world, sampled_indices_object;
+pcl::UniformSampling<PointType> uniform_sampling_object, uniform_sampling_world;
+pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> descr_est_object, descr_est_world;

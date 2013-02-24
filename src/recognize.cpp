@@ -6,118 +6,119 @@
 
 #include "recognize.h"
 
-void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-	scene               = PointCloud::Ptr    (new PointCloud    ());
-	scene_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	scene_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	scene_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+	world               = PointCloud::Ptr    (new PointCloud    ());
+	world_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+	world_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+	world_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
 
-	pcl::fromROSMsg(*input, *scene);
+	pcl::fromROSMsg(*input, *world);
 
 	//compute normals
 	cout << "... computing normals from world ..." << endl;
-	norm_est.setInputCloud (scene);
-	norm_est.compute (*scene_normals);
+	norm_est_world.setInputCloud (world);
+	norm_est_world.compute (*world_normals);
 
 
 	//
 	//  Downsample world to extract keypoints
 	//
-	uniform_sampling.setInputCloud (scene);
-	uniform_sampling.setRadiusSearch (scene_ss_);
-	uniform_sampling.compute (sampled_indices);
-	pcl::copyPointCloud (*scene, sampled_indices.points, *scene_keypoints);
-	std::cout << "World total points: " << scene->size () << "; Selected Keypoints: " << scene_keypoints->size () << std::endl;
+	uniform_sampling_world.setInputCloud (world);
+	uniform_sampling_world.setRadiusSearch (world_ss_);
+	uniform_sampling_world.compute (sampled_indices_world);
+	pcl::copyPointCloud (*world, sampled_indices_world.points, *world_keypoints);
+	std::cout << "World total points: " << world->size () << "; Selected Keypoints: " << world_keypoints->size () << std::endl;
 
 
   //
   // Extract descriptors
   //
 	cout << "... extracting descriptors from world ..." << endl;
-  descr_est.setInputCloud (scene_keypoints);
-  descr_est.setRadiusSearch (descr_rad_);
-  descr_est.setInputNormals (scene_normals);
-  descr_est.setSearchSurface (scene);
-  descr_est.compute (*scene_descriptors);
+  descr_est_world.setInputCloud (world_keypoints);
+  descr_est_world.setRadiusSearch (descr_rad_);
+  descr_est_world.setInputNormals (world_normals);
+  descr_est_world.setSearchSurface (world);
+  descr_est_world.compute (*world_descriptors);
 
 }
 
-void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	// check if world was already processed
-	if (scene_descriptors == NULL)
+	if (world_descriptors == NULL)
 	{
 		ROS_WARN("Received an object pointcloud before having a world pointcloud to compare");
 		return;
 	}
 
-	model               = PointCloud::Ptr    (new PointCloud    ());
-	model_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	model_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	model_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+	object               = PointCloud::Ptr    (new PointCloud    ());
+	object_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+	object_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+	object_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
 
-	pcl::fromROSMsg(*input, *model);
+	pcl::fromROSMsg(*input, *object);
 
 	//
 	// compute normals
 	//
 	cout << "... computing normals from object ..." << endl;
-	norm_est.setInputCloud (model);
-	norm_est.compute (*model_normals);
+	norm_est_object.setInputCloud (object);
+	norm_est_object.compute (*object_normals);
 
 
 	//
 	//  Downsample object to extract keypoints
 	//
 	cout << "... downsampling object ..." << endl;
-	uniform_sampling.setInputCloud (model);
-	uniform_sampling.setRadiusSearch (model_ss_);
-	uniform_sampling.compute (sampled_indices);
-	pcl::copyPointCloud (*model, sampled_indices.points, *model_keypoints);
-	std::cout << "Model total points: " << model->size () << "; Selected Keypoints: " << model_keypoints->size () << std::endl;
+	uniform_sampling_object.setInputCloud (object);
+	uniform_sampling_object.setRadiusSearch (object_ss_);
+	uniform_sampling_object.compute (sampled_indices_object);
+	pcl::copyPointCloud (*object, sampled_indices_object.points, *object_keypoints);
+	std::cout << "Object total points: " << object->size () << "; Selected Keypoints: " << object_keypoints->size () << std::endl;
 
 
 	//
 	// Extract descriptors
 	//
 	cout << "... extracting descriptors from object ..." << endl;
-	descr_est.setInputCloud (model_keypoints);
-	descr_est.setInputNormals (model_normals);
-	descr_est.setSearchSurface (model);
-	descr_est.compute (*model_descriptors);
+	descr_est_object.setInputCloud (object_keypoints);
+	descr_est_object.setRadiusSearch (descr_rad_);
+	descr_est_object.setInputNormals (object_normals);
+	descr_est_object.setSearchSurface (object);
+	descr_est_object.compute (*object_descriptors);
 
 
 	//
-	//  Find Model-Scene Correspondences with KdTree
+	//  Find Object-World Correspondences with KdTree
 	//
 	cout << "... finding correspondences ..." << endl;
-	pcl::CorrespondencesPtr model_scene_corrs (new pcl::Correspondences ());
+	pcl::CorrespondencesPtr object_world_corrs (new pcl::Correspondences ());
 	
 	pcl::KdTreeFLANN<DescriptorType> match_search;
-	match_search.setInputCloud (model_descriptors);
+	match_search.setInputCloud (object_descriptors);
 		
-	// For each scene keypoint descriptor
-	// find nearest neighbor into the model keypoints descriptor cloud 
+	// For each world keypoint descriptor
+	// find nearest neighbor into the object keypoints descriptor cloud 
 	// and add it to the correspondences vector
-	for (size_t i = 0; i < scene_descriptors->size (); ++i)
+	for (size_t i = 0; i < world_descriptors->size (); ++i)
 	{
 		std::vector<int> neigh_indices (1);
 		std::vector<float> neigh_sqr_dists (1);
-		if (!pcl_isfinite (scene_descriptors->at (i).descriptor[0])) //skipping NaNs
+		if (!pcl_isfinite (world_descriptors->at (i).descriptor[0])) //skipping NaNs
 		{
 			continue;
 		}
-		int found_neighs = match_search.nearestKSearch (scene_descriptors->at (i), 1, neigh_indices, neigh_sqr_dists);
+		int found_neighs = match_search.nearestKSearch (world_descriptors->at (i), 1, neigh_indices, neigh_sqr_dists);
 		// add match only if the squared descriptor distance is less than 0.25 
 		// SHOT descriptor distances are between 0 and 1 by design
 		if(found_neighs == 1 && neigh_sqr_dists[0] < 0.25f) 
 		{
 			pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
-			model_scene_corrs->push_back (corr);
+			object_world_corrs->push_back (corr);
 		}
 	}
-	std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
+	std::cout << "Correspondences found: " << object_world_corrs->size () << std::endl;
     
 
   //
@@ -131,9 +132,9 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	gc_clusterer.setGCSize (cg_size_);
 	gc_clusterer.setGCThreshold (cg_thresh_);
 
-	gc_clusterer.setInputCloud (model_keypoints);
-	gc_clusterer.setSceneCloud (scene_keypoints);
-	gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
+	gc_clusterer.setInputCloud (object_keypoints);
+	gc_clusterer.setSceneCloud (world_keypoints);
+	gc_clusterer.setModelSceneCorrespondences (object_world_corrs);
 
 	gc_clusterer.recognize (rototranslations, clustered_corrs);
 
@@ -141,7 +142,7 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //
   //  Output results
   //
-  std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+  std::cout << "Object instances found: " << rototranslations.size () << std::endl;
   for (size_t i = 0; i < rototranslations.size (); ++i)
   {
     std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
@@ -198,11 +199,12 @@ int main(int argc, char **argv)
 	sub_object = nh.subscribe ("object_pointcloud", 1, object_cb);
 
   //  uSet parameters for normal computation
-  norm_est.setKSearch (10);
+  norm_est_world.setKSearch (10);
+  norm_est_object.setKSearch (10);
 
 	//Algorithm params
-	model_ss_ = 0.01;
-	scene_ss_ = 0.03;
+	object_ss_ = 0.01;
+	world_ss_ = 0.03;
 	rf_rad_ = 0.015;
 	descr_rad_ = 0.02;
 	cg_size_ = 0.01;
