@@ -18,6 +18,8 @@ int main(int argc, char **argv)
 	pub_keypoints   = nh.advertise<sensor_msgs::PointCloud2> ("keypoints", 1);
 	//pub_descriptors = nh.advertise<pcl::PointCloud<pcl::SHOT352>::Ptr> ("descriptors", 1);
 
+	// create objects
+	output = sensor_msgs::PointCloud2::Ptr (new sensor_msgs::PointCloud2);	
 	// If parameter pcd_path was not specified
 	if (!nh.getParam("pcd_path", pcd_path))
 	{
@@ -25,6 +27,14 @@ int main(int argc, char **argv)
 		ROS_ERROR("Usage: rosrun object_recognition pcd_descriptor _pcd_path:=/path/to/pcd");
 		return -1;
 	}
+
+	//
+	// create all neccessary objects
+	//
+	cloud               = PointCloud::Ptr    (new PointCloud    ());
+	cloud_keypoints     = PointCloud::Ptr    (new PointCloud    ());
+	cloud_normals       = NormalCloud::Ptr   (new NormalCloud   ());
+	cloud_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
 
 	
 	//
@@ -35,15 +45,6 @@ int main(int argc, char **argv)
 		PCL_ERROR ("Couldn't read file %s \n", pcd_path.c_str());
 		return (-1);
 	}
-
-
-	//
-	// create all neccessary objects
-	//
-	cloud               = PointCloud::Ptr    (new PointCloud    ());
-	cloud_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	cloud_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	cloud_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
 
 	// Algorithm params
 	cloud_ss_ = 0.01;
