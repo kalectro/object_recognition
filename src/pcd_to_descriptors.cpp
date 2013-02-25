@@ -6,6 +6,11 @@
 
 #include "pcd_to_descriptors.h"
 
+void toROSMsg(DesciptorCloud input, object_recognition::Shot352 &output)
+{
+	cout << input.size() << endl;
+}
+
 int main(int argc, char **argv)
 {
 	//
@@ -16,10 +21,12 @@ int main(int argc, char **argv)
 
 	// Create a ROS publisher for the output model coefficients
 	pub_keypoints   = nh.advertise<sensor_msgs::PointCloud2> ("keypoints", 1);
-	//pub_descriptors = nh.advertise<pcl::PointCloud<pcl::SHOT352>::Ptr> ("descriptors", 1);
+	pub_descriptors = nh.advertise<object_recognition::Shot352> ("descriptors", 1);
 
 	// create objects
-	output = sensor_msgs::PointCloud2::Ptr (new sensor_msgs::PointCloud2);	
+	output_keypoints = sensor_msgs::PointCloud2::Ptr (new sensor_msgs::PointCloud2);	
+	output_descriptors = object_recognition::Shot352::Ptr (new object_recognition::Shot352);
+
 	// If parameter pcd_path was not specified
 	if (!nh.getParam("pcd_path", pcd_path))
 	{
@@ -85,10 +92,12 @@ int main(int argc, char **argv)
 	//
 	// Publish Keypoints and Descriptors
 	//
-	pcl::toROSMsg(*cloud_keypoints, *output);
-	pub_keypoints.publish(*output);
-	//pub_descriptors.publish(*cloud_descriptors);
+	pcl::toROSMsg(*cloud_keypoints, *output_keypoints);
+	pub_keypoints.publish(*output_keypoints);
+	toROSMsg(*cloud_descriptors, *output_descriptors);
+	pub_descriptors.publish(*output_descriptors);
 
+	sleep(1);
 	ros::spinOnce();
 	return 0;
 }

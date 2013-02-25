@@ -8,6 +8,7 @@
 
 #include "ros/ros.h"
 #include <sensor_msgs/PointCloud2.h>
+#include <object_recognition/Shot352.h>
 #include <stdio.h>
 #include <string>
 #include <pcl/point_cloud.h>
@@ -42,7 +43,8 @@ PointCloud::Ptr cloud;
 PointCloud::Ptr cloud_keypoints;
 NormalCloud::Ptr cloud_normals;
 DesciptorCloud::Ptr cloud_descriptors;
-sensor_msgs::PointCloud2::Ptr output;
+sensor_msgs::PointCloud2::Ptr output_keypoints;
+object_recognition::Shot352::Ptr output_descriptors;
 
 pcl::NormalEstimationOMP<PointType, NormalType> norm_est_cloud;
 pcl::PointCloud<int> sampled_indices_cloud;

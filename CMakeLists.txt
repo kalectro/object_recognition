@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_recognition)
 
-find_package(catkin REQUIRED COMPONENTS roscpp rostime sensor_msgs std_msgs geometry_msgs tf)
+find_package(catkin REQUIRED COMPONENTS roscpp rostime sensor_msgs std_msgs geometry_msgs tf message_generation)
 find_package(PCL 1.6.1 REQUIRED)
+
+add_message_files(
+  DIRECTORY msg
+  FILES
+  Shot352.msg
+)
+
+generate_messages(DEPENDENCIES std_msgs)
 
 catkin_package(
   CATKIN_DEPENDS roscpp rostime sensor_msgs std_msgs geometry_msgs tf
