@@ -8,9 +8,9 @@ add_message_files(
   DIRECTORY msg
   FILES
   Shot352.msg
+  Shot352_bundle.msg
 )
-
-generate_messages(DEPENDENCIES std_msgs)
+generate_messages(DEPENDENCIES std_msgs object_recognition)
 
 catkin_package(
   CATKIN_DEPENDS roscpp rostime sensor_msgs std_msgs geometry_msgs tf

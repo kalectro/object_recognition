@@ -6,9 +6,23 @@
 
 #include "pcd_to_descriptors.h"
 
-void toROSMsg(DesciptorCloud input, object_recognition::Shot352 &output)
+void toROSMsg(const DesciptorCloud &input, object_recognition::Shot352_bundle &output)
 {
-	cout << input.size() << endl;
+	output.descriptors.resize(input.size());
+	for (int j = 0 ; j < input.size() ; ++j)
+	{	
+		std::copy(input[j].descriptor, input[j].descriptor + 352 , output.descriptors[j].descriptor.begin());
+		std::copy(input[j].rf, input[j].rf + 9, output.descriptors[j].rf.begin());
+	}
+
+	// keep this if memcopy does not work
+	//for (int j = 0 ; j < input.size() ; ++j)
+	//{	
+	//	for (int i = 0 ; i < 352 ; ++i)
+	//		output.descriptors[j].descriptor[i] = input[j].descriptor[i];
+	//	for (int i = 0 ; i < 9 ; ++i)
+	//		output.descriptors[j].rf[i] = input[j].rf[i];
+	//}
 }
 
 int main(int argc, char **argv)
@@ -21,11 +35,11 @@ int main(int argc, char **argv)
 
 	// Create a ROS publisher for the output model coefficients
 	pub_keypoints   = nh.advertise<sensor_msgs::PointCloud2> ("keypoints", 1);
-	pub_descriptors = nh.advertise<object_recognition::Shot352> ("descriptors", 1);
+	pub_descriptors = nh.advertise<object_recognition::Shot352_bundle> ("descriptors", 1);
 
 	// create objects
 	output_keypoints = sensor_msgs::PointCloud2::Ptr (new sensor_msgs::PointCloud2);	
-	output_descriptors = object_recognition::Shot352::Ptr (new object_recognition::Shot352);
+	output_descriptors = object_recognition::Shot352_bundle::Ptr (new object_recognition::Shot352_bundle);
 
 	// If parameter pcd_path was not specified
 	if (!nh.getParam("pcd_path", pcd_path))
@@ -90,14 +104,33 @@ int main(int argc, char **argv)
 	descr_est_cloud.compute (*cloud_descriptors);
 
 	//
-	// Publish Keypoints and Descriptors
+	// Convert to ROS message
 	//
 	pcl::toROSMsg(*cloud_keypoints, *output_keypoints);
-	pub_keypoints.publish(*output_keypoints);
 	toROSMsg(*cloud_descriptors, *output_descriptors);
-	pub_descriptors.publish(*output_descriptors);
+	output_keypoints->header.frame_id = "/pcd_frame";
 
-	sleep(1);
+	// check if anyone subscribed
+	if (pub_keypoints.getNumSubscribers() == 0)
+	{
+		ROS_WARN("No subscriber found");
+		while (pub_keypoints.getNumSubscribers() == 0)
+		{
+			ros::Duration(1).sleep();
+		}
+		// give some time to set up connection
+		ros::Duration(1).sleep();
+	}
+
+
+	//
+	// Publish Keypoints and Descriptors
+	//
+	pub_keypoints.publish(*output_keypoints);
+	pub_descriptors.publish(*output_descriptors);
+	// wait before killing node to be able to transmit pointcloud
+	ros::Duration(2).sleep();
 	ros::spinOnce();
+
 	return 0;
 }
