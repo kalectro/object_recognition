@@ -18,12 +18,10 @@
 #include <pcl/keypoints/uniform_sampling.h>
 #include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
-#include <geometry_msgs/Pose.h>
 #include <tf/transform_broadcaster.h>
 
 typedef pcl::PointXYZRGBA PointType;
@@ -35,10 +33,6 @@ typedef pcl::SHOT352 DescriptorType;
 typedef pcl::PointCloud<DescriptorType> DesciptorCloud;
 
 using namespace std;
-
-// Timing variables
-ros::Time start;
-ros::Time stop;
 
 // Initialize Subscriber
 ros::Subscriber sub_world;

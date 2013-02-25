@@ -159,7 +159,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     printf ("\n");
     printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
 
-		// convert Eigen matricies into ROS Pose message
+		// convert Eigen matricies into ROS TF message
 		tf::Vector3 object_offset;
 		tf::Quaternion object_rotation;
 		object_offset[0] = translation (0);
