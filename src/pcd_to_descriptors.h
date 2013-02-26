@@ -37,7 +37,8 @@ ros::Publisher pub_keypoints, pub_descriptors;
 string pcd_path;
 
 //Algorithm params
-float cloud_ss_,rf_rad_, descr_rad_ ;
+double cloud_ss_,rf_rad_, descr_rad_ ;
+string output_frame;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
 PointCloud::Ptr cloud;

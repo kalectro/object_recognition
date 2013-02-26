@@ -14,15 +14,6 @@ void toROSMsg(const DescriptorCloud &input, object_recognition::Shot352_bundle &
 		std::copy(input[j].descriptor, input[j].descriptor + 352 , output.descriptors[j].descriptor.begin());
 		std::copy(input[j].rf, input[j].rf + 9, output.descriptors[j].rf.begin());
 	}
-
-	// keep this if memcopy does not work
-	//for (int j = 0 ; j < input.size() ; ++j)
-	//{	
-	//	for (int i = 0 ; i < 352 ; ++i)
-	//		output.descriptors[j].descriptor[i] = input[j].descriptor[i];
-	//	for (int i = 0 ; i < 9 ; ++i)
-	//		output.descriptors[j].rf[i] = input[j].rf[i];
-	//}
 }
 
 int main(int argc, char **argv)
@@ -48,6 +39,7 @@ int main(int argc, char **argv)
 		ROS_ERROR("Usage: rosrun object_recognition pcd_descriptor _pcd_path:=/path/to/pcd");
 		return -1;
 	}
+	
 
 	//
 	// create all neccessary objects
@@ -67,11 +59,11 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	// Algorithm params
-	cloud_ss_ = 0.01;
-	rf_rad_ = 0.015;
-	descr_rad_ = 0.02;
-
+	// retrieve all parameter variables from server or set to a default value
+	nh.param<double>("cloud_ss" , cloud_ss_ , 0.01 );
+	nh.param<double>("rf_rad"   , rf_rad_   , 0.015);
+	nh.param<double>("descr_rad", descr_rad_, 0.02 );
+	nh.param<string>("output_frame", output_frame, "pcd_frame");
 
 	//
 	// compute normals
@@ -108,10 +100,10 @@ int main(int argc, char **argv)
 	//
 	pcl::toROSMsg(*cloud_keypoints, *output_keypoints);
 	toROSMsg(*cloud_descriptors, *output_descriptors);
-	output_keypoints->header.frame_id = "/pcd_frame";
+	output_keypoints->header.frame_id = output_frame;
 
 	// check if anyone subscribed
-	if (pub_keypoints.getNumSubscribers() == 0)
+	if (pub_keypoints.getNumSubscribers() == 0 || pub_descriptors.getNumSubscribers() == 0)
 	{
 		ROS_WARN("No subscriber found");
 		while (pub_keypoints.getNumSubscribers() == 0)

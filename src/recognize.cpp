@@ -16,46 +16,30 @@ void fromROSMsg(const object_recognition::Shot352_bundle &input,  DescriptorClou
 	}
 }
 
-// Callback function when a world point cloud was received
-void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+// Callback function when the world keypoints are received
+void world_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-	world               = PointCloud::Ptr     (new PointCloud    ());
-	world_keypoints     = PointCloud::Ptr     (new PointCloud    ());
-	world_normals       = NormalCloud::Ptr    (new NormalCloud   ());
-	world_descriptors   = DescriptorCloud::Ptr(new DescriptorCloud());
+	world_keypoints = PointCloud::Ptr (new PointCloud());
+	pcl::fromROSMsg(*input, *world_keypoints);
+}
 
-	pcl::fromROSMsg(*input, *world);
+// Callback function when the world descriptors are received
+void world_descriptor_cb (const object_recognition::Shot352_bundle::Ptr input)
+{
+	world_descriptors = DescriptorCloud::Ptr (new DescriptorCloud ());
+	fromROSMsg(*input, *world_descriptors);
+}
 
-	//compute normals
-	cout << "... computing normals from world ..." << endl;
-	norm_est_world.setInputCloud (world);
-	norm_est_world.compute (*world_normals);
-
-
-	//
-	//  Downsample world to extract keypoints
-	//
-	uniform_sampling_world.setInputCloud (world);
-	uniform_sampling_world.setRadiusSearch (world_ss_);
-	uniform_sampling_world.compute (sampled_indices_world);
-	pcl::copyPointCloud (*world, sampled_indices_world.points, *world_keypoints);
-	std::cout << "World total points: " << world->size () << "; Selected Keypoints: " << world_keypoints->size () << std::endl;
-
-
-  //
-  // Extract descriptors
-  //
-	cout << "... extracting descriptors from world ..." << endl;
-  descr_est_world.setInputCloud (world_keypoints);
-  descr_est_world.setRadiusSearch (descr_rad_);
-  descr_est_world.setInputNormals (world_normals);
-  descr_est_world.setSearchSurface (world);
-  descr_est_world.compute (*world_descriptors);
-
+// Callback function when the object keypoints are received
+void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+{
+	object_keypoints = PointCloud::Ptr (new PointCloud());
+	pcl::fromROSMsg(*input, *object_keypoints);
 }
 
 // callback function when the object descriptors are received
-void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
+// this will also trigger the recognition if all the other keypoints and descriptors have been received
+void object_descriptor_cb (const object_recognition::Shot352_bundle::Ptr input)
 {
 	// check if world was already processed
 	if (world_descriptors == NULL)
@@ -63,11 +47,19 @@ void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
 		ROS_WARN("Received object descriptors before having a world pointcloud to compare");
 		return;
 	}
-	if ((int)object_keypoints->size() != (int)input->descriptors.size())
+	// check if the stored world descriptors can be assinged to the stored keypoints
+	if ((int)world_keypoints->size() != (int)world_descriptors->size())
 	{
-		ROS_WARN("Received %i descriptors and %i keypoints. Number must be equal", (int)input->descriptors.size(), (int)object_keypoints->size());
+		ROS_WARN("Received %i descriptors and %i keypoints for the world. Number must be equal", (int)world_descriptors->size(), (int)world_keypoints->size());
 		return;
 	}
+	// check if the received object descriptors can be assigned to the stored keypoints
+	if ((int)object_keypoints->size() != (int)input->descriptors.size())
+	{
+		ROS_WARN("Received %i descriptors and %i keypoints for the object. Number must be equal", (int)input->descriptors.size(), (int)object_keypoints->size());
+		return;
+	}
+	
 	object_descriptors = DescriptorCloud::Ptr (new DescriptorCloud ());
 	fromROSMsg(*input, *object_descriptors);
 	//
@@ -157,21 +149,14 @@ void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
 		tf::Transform transform;
 		transform.setOrigin (object_offset);
 		transform.setRotation (object_rotation);
-		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
+		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
 	
 		while (ros::ok())
 		{
-			br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object_tf"));
-			sleep(1);
+			br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
+			ros::Duration(1).sleep();
 		}
   }
-}
-
-// Callback function when the object keypoints are received
-void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
-{
-	object_keypoints = PointCloud::Ptr (new PointCloud());
-	pcl::fromROSMsg(*input, *object_keypoints);
 }
 
 int main(int argc, char **argv)
@@ -179,22 +164,13 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "feature_detection");
 	ros::NodeHandle nh;
 	
-	// Create a ROS subscriber for the world point cloud
-	sub_world = nh.subscribe ("world_pointcloud", 1, world_cb);
-	
-	// Create a ROS subscriber for the object point cloud
-	sub_keypoint = nh.subscribe ("/cloud_descriptor/keypoints", 1, object_keypoint_cb);
-	sub_descriptors = nh.subscribe ("/cloud_descriptor/descriptors", 1, object_descriptors_cb);
-
-  //  uSet parameters for normal computation
-  norm_est_world.setKSearch (10);
-  norm_est_object.setKSearch (10);
+	// Create a ROS subscriber for the object and world keypoints and descriptors
+	sub_keypoint_object = nh.subscribe ("/cloud_descriptor/object/keypoints", 1, object_keypoint_cb);
+	sub_descriptors_object = nh.subscribe ("/cloud_descriptor/object/descriptors", 1, object_descriptor_cb);
+	sub_keypoint_world = nh.subscribe ("/cloud_descriptor/world/keypoints", 1, world_keypoint_cb);
+	sub_descriptors_world = nh.subscribe ("/cloud_descriptor/world/descriptors", 1, world_descriptor_cb);
 
 	//Algorithm params
-	object_ss_ = 0.01;
-	world_ss_ = 0.03;
-	rf_rad_ = 0.015;
-	descr_rad_ = 0.02;
 	cg_size_ = 0.01;
 	cg_thresh_ = 5.0;
 
