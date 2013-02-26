@@ -8,7 +8,6 @@
 
 void fromROSMsg(const object_recognition::Shot352_bundle &input,  DescriptorCloud &output)
 {
-	cout << input.descriptors.size() << endl;
 	output.resize(input.descriptors.size());
 	for (int j = 0 ; j < input.descriptors.size() ; ++j)
 	{	
@@ -64,7 +63,6 @@ void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
 		ROS_WARN("Received object descriptors before having a world pointcloud to compare");
 		return;
 	}
-	cout << object_keypoints->size() << ';' << object_keypoints->size() << endl;
 	if ((int)object_keypoints->size() != (int)input->descriptors.size())
 	{
 		ROS_WARN("Received %i descriptors and %i keypoints. Number must be equal", (int)input->descriptors.size(), (int)object_keypoints->size());
