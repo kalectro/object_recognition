@@ -1,0 +1,22 @@
+<launch>
+	<node name="world_describer"  pkg="object_recognition" type="pcd_descriptor" >
+		<param name="pcd_path" value="/home/frk1pal/catkin_ws/src/ros_object_recognition/world.pcd" />
+		<param name="output_frame" value="/world" />
+		<param name="cloud_ss" value="0.03" />
+		<param name="rf_rad" value="0.015" />
+		<param name="descr_rad" value="0.02" />
+		<remap from="world_describer/keypoints" to="/cloud_descriptor/world/keypoints" />
+		<remap from="world_describer/descriptors" to="/cloud_descriptor/world/descriptors" />
+	</node>
+
+	<node name="object_describer"  pkg="object_recognition" type="pcd_descriptor" >				
+		<param name="pcd_path" value="/home/frk1pal/catkin_ws/src/ros_object_recognition/object.pcd" />
+		<param name="output_frame" value="/object" />
+		<param name="cloud_ss" value="0.01" />
+		<param name="rf_rad" value="0.015" />
+		<param name="descr_rad" value="0.02" />
+		<remap from="object_describer/keypoints" to="/cloud_descriptor/object/keypoints" />
+		<remap from="object_describer/descriptors" to="/cloud_descriptor/object/descriptors" />									
+	</node>																														
+
+</launch>

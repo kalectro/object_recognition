@@ -27,7 +27,7 @@ typedef pcl::Normal NormalType;
 typedef pcl::SHOT352 DescriptorType;
 typedef pcl::PointCloud<PointType> PointCloud;
 typedef pcl::PointCloud<NormalType> NormalCloud;
-typedef pcl::PointCloud<DescriptorType> DesciptorCloud;
+typedef pcl::PointCloud<DescriptorType> DescriptorCloud;
 
 using namespace std;
 
@@ -37,13 +37,14 @@ ros::Publisher pub_keypoints, pub_descriptors;
 string pcd_path;
 
 //Algorithm params
-float cloud_ss_,rf_rad_, descr_rad_ ;
+double cloud_ss_,rf_rad_, descr_rad_ ;
+string output_frame;
 
 // Point clouds for object, world and its normals, keypoints and descriptors
 PointCloud::Ptr cloud;
 PointCloud::Ptr cloud_keypoints;
 NormalCloud::Ptr cloud_normals;
-DesciptorCloud::Ptr cloud_descriptors;
+DescriptorCloud::Ptr cloud_descriptors;
 sensor_msgs::PointCloud2::Ptr output_keypoints;
 object_recognition::Shot352_bundle::Ptr output_descriptors;
 
