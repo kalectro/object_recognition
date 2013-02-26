@@ -17,6 +17,7 @@ void fromROSMsg(const object_recognition::Shot352_bundle &input,  DescriptorClou
 	}
 }
 
+// Callback function when a world point cloud was received
 void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	world               = PointCloud::Ptr     (new PointCloud    ());
@@ -54,23 +55,23 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 }
 
+// callback function when the object descriptors are received
 void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
-{
-	object_descriptors = DescriptorCloud::Ptr (new DescriptorCloud ());
-	fromROSMsg(*input, *object_descriptors);
-}
-
-void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	// check if world was already processed
 	if (world_descriptors == NULL)
 	{
-		ROS_WARN("Received an object pointcloud before having a world pointcloud to compare");
+		ROS_WARN("Received object descriptors before having a world pointcloud to compare");
 		return;
 	}
-
-	pcl::fromROSMsg(*input, *object_keypoints);
-
+	cout << object_keypoints->size() << ';' << object_keypoints->size() << endl;
+	if ((int)object_keypoints->size() != (int)input->descriptors.size())
+	{
+		ROS_WARN("Received %i descriptors and %i keypoints. Number must be equal", (int)input->descriptors.size(), (int)object_keypoints->size());
+		return;
+	}
+	object_descriptors = DescriptorCloud::Ptr (new DescriptorCloud ());
+	fromROSMsg(*input, *object_descriptors);
 	//
 	//  Find Object-World Correspondences with KdTree
 	//
@@ -166,7 +167,13 @@ void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 			sleep(1);
 		}
   }
+}
 
+// Callback function when the object keypoints are received
+void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+{
+	object_keypoints = PointCloud::Ptr (new PointCloud());
+	pcl::fromROSMsg(*input, *object_keypoints);
 }
 
 int main(int argc, char **argv)

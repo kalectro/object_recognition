@@ -127,8 +127,8 @@ int main(int argc, char **argv)
 	//
 	// Publish Keypoints and Descriptors
 	//
-	pub_descriptors.publish(*output_descriptors);
 	pub_keypoints.publish(*output_keypoints);
+	pub_descriptors.publish(*output_descriptors);
 	// wait before killing node to be able to transmit pointcloud
 	ros::Duration(2).sleep();
 	ros::spinOnce();
