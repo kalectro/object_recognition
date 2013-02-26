@@ -6,12 +6,23 @@
 
 #include "recognize.h"
 
+void fromROSMsg(const object_recognition::Shot352_bundle &input,  DescriptorCloud &output)
+{
+	cout << input.descriptors.size() << endl;
+	output.resize(input.descriptors.size());
+	for (int j = 0 ; j < input.descriptors.size() ; ++j)
+	{	
+		std::copy(input.descriptors[j].descriptor.begin(), input.descriptors[j].descriptor.begin() + 352 , output[j].descriptor);
+		std::copy(input.descriptors[j].rf.begin(), input.descriptors[j].rf.begin() + 9, output[j].rf);
+	}
+}
+
 void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-	world               = PointCloud::Ptr    (new PointCloud    ());
-	world_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	world_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	world_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+	world               = PointCloud::Ptr     (new PointCloud    ());
+	world_keypoints     = PointCloud::Ptr     (new PointCloud    ());
+	world_normals       = NormalCloud::Ptr    (new NormalCloud   ());
+	world_descriptors   = DescriptorCloud::Ptr(new DescriptorCloud());
 
 	pcl::fromROSMsg(*input, *world);
 
@@ -43,7 +54,13 @@ void world_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 }
 
-void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
+void object_descriptors_cb (const object_recognition::Shot352_bundle::Ptr input)
+{
+	object_descriptors = DescriptorCloud::Ptr (new DescriptorCloud ());
+	fromROSMsg(*input, *object_descriptors);
+}
+
+void object_keypoint_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
 	// check if world was already processed
 	if (world_descriptors == NULL)
@@ -52,42 +69,7 @@ void object_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 		return;
 	}
 
-	object               = PointCloud::Ptr    (new PointCloud    ());
-	object_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	object_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	object_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
-
-	pcl::fromROSMsg(*input, *object);
-
-	//
-	// compute normals
-	//
-	cout << "... computing normals from object ..." << endl;
-	norm_est_object.setInputCloud (object);
-	norm_est_object.compute (*object_normals);
-
-
-	//
-	//  Downsample object to extract keypoints
-	//
-	cout << "... downsampling object ..." << endl;
-	uniform_sampling_object.setInputCloud (object);
-	uniform_sampling_object.setRadiusSearch (object_ss_);
-	uniform_sampling_object.compute (sampled_indices_object);
-	pcl::copyPointCloud (*object, sampled_indices_object.points, *object_keypoints);
-	std::cout << "Object total points: " << object->size () << "; Selected Keypoints: " << object_keypoints->size () << std::endl;
-
-
-	//
-	// Extract descriptors
-	//
-	cout << "... extracting descriptors from object ..." << endl;
-	descr_est_object.setInputCloud (object_keypoints);
-	descr_est_object.setRadiusSearch (descr_rad_);
-	descr_est_object.setInputNormals (object_normals);
-	descr_est_object.setSearchSurface (object);
-	descr_est_object.compute (*object_descriptors);
-
+	pcl::fromROSMsg(*input, *object_keypoints);
 
 	//
 	//  Find Object-World Correspondences with KdTree
@@ -196,7 +178,8 @@ int main(int argc, char **argv)
 	sub_world = nh.subscribe ("world_pointcloud", 1, world_cb);
 	
 	// Create a ROS subscriber for the object point cloud
-	sub_object = nh.subscribe ("object_pointcloud", 1, object_cb);
+	sub_keypoint = nh.subscribe ("/cloud_descriptor/keypoints", 1, object_keypoint_cb);
+	sub_descriptors = nh.subscribe ("/cloud_descriptor/descriptors", 1, object_descriptors_cb);
 
   //  uSet parameters for normal computation
   norm_est_world.setKSearch (10);

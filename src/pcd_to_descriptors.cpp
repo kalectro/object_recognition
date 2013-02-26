@@ -6,7 +6,7 @@
 
 #include "pcd_to_descriptors.h"
 
-void toROSMsg(const DesciptorCloud &input, object_recognition::Shot352_bundle &output)
+void toROSMsg(const DescriptorCloud &input, object_recognition::Shot352_bundle &output)
 {
 	output.descriptors.resize(input.size());
 	for (int j = 0 ; j < input.size() ; ++j)
@@ -52,10 +52,10 @@ int main(int argc, char **argv)
 	//
 	// create all neccessary objects
 	//
-	cloud               = PointCloud::Ptr    (new PointCloud    ());
-	cloud_keypoints     = PointCloud::Ptr    (new PointCloud    ());
-	cloud_normals       = NormalCloud::Ptr   (new NormalCloud   ());
-	cloud_descriptors   = DesciptorCloud::Ptr(new DesciptorCloud());
+	cloud               = PointCloud::Ptr     (new PointCloud    ());
+	cloud_keypoints     = PointCloud::Ptr     (new PointCloud    ());
+	cloud_normals       = NormalCloud::Ptr    (new NormalCloud   ());
+	cloud_descriptors   = DescriptorCloud::Ptr(new DescriptorCloud());
 
 	
 	//
@@ -118,6 +118,7 @@ int main(int argc, char **argv)
 		{
 			ros::Duration(1).sleep();
 		}
+		ROS_WARN("Subscriber now available, wait another 1 second");
 		// give some time to set up connection
 		ros::Duration(1).sleep();
 	}
@@ -126,8 +127,8 @@ int main(int argc, char **argv)
 	//
 	// Publish Keypoints and Descriptors
 	//
-	pub_keypoints.publish(*output_keypoints);
 	pub_descriptors.publish(*output_descriptors);
+	pub_keypoints.publish(*output_keypoints);
 	// wait before killing node to be able to transmit pointcloud
 	ros::Duration(2).sleep();
 	ros::spinOnce();

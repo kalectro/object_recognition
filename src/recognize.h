@@ -23,6 +23,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
 #include <tf/transform_broadcaster.h>
+#include <object_recognition/Shot352_bundle.h>
 
 typedef pcl::PointXYZRGBA PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -30,13 +31,14 @@ typedef pcl::Normal NormalType;
 typedef pcl::PointCloud<NormalType> NormalCloud;
 typedef pcl::ReferenceFrame RFType;
 typedef pcl::SHOT352 DescriptorType;
-typedef pcl::PointCloud<DescriptorType> DesciptorCloud;
+typedef pcl::PointCloud<DescriptorType> DescriptorCloud;
 
 using namespace std;
 
 // Initialize Subscriber
 ros::Subscriber sub_world;
-ros::Subscriber sub_object;
+ros::Subscriber sub_descriptors;
+ros::Subscriber sub_keypoint;
 
 // Initialize Publisher for object tf frame in world
 ros::Publisher pub_object_tf;
@@ -51,8 +53,8 @@ PointCloud::Ptr world;
 PointCloud::Ptr world_keypoints;
 NormalCloud::Ptr object_normals;
 NormalCloud::Ptr world_normals;
-DesciptorCloud::Ptr object_descriptors;
-DesciptorCloud::Ptr world_descriptors;
+DescriptorCloud::Ptr object_descriptors;
+DescriptorCloud::Ptr world_descriptors;
 
 pcl::NormalEstimationOMP<PointType, NormalType> norm_est_world, norm_est_object;
 pcl::PointCloud<int> sampled_indices_world, sampled_indices_object;
