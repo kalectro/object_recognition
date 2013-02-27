@@ -24,7 +24,7 @@
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/common/transforms.h>
 
-typedef pcl::PointXYZRGBA PointType;
+typedef pcl::PointXYZRGB PointType;
 typedef pcl::Normal NormalType;
 typedef pcl::SHOT352 SHOT352;
 typedef pcl::SHOT1344 SHOT1344;

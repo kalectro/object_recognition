@@ -26,7 +26,7 @@
 #include <object_recognition/Shot352_bundle.h>
 #include <object_recognition/Shot1344_bundle.h>
 
-typedef pcl::PointXYZRGBA PointType;
+typedef pcl::PointXYZRGB PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
 typedef pcl::SHOT352 SHOT352;
 typedef pcl::SHOT1344 SHOT1344;
