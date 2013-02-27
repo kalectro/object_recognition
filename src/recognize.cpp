@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 	sub_descriptors_world_shot1344 = nh.subscribe ("/object_recognition/world/descriptors/Shot1344" , 1, world_descriptor_shot1344_cb );
 
 	// Get the parameter for the maximum descriptor distance 
-	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.1 );
+	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
 	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
 	nh_param.param<double>("cg_thresh", cg_thresh_, 5.0);
 
