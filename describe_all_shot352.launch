@@ -5,8 +5,8 @@
 		<param name="cloud_ss" value="0.03" />
 		<param name="rf_rad" value="0.015" />
 		<param name="descr_rad" value="0.02" />
-		<remap from="world_describer/keypoints" to="/cloud_descriptor/world/keypoints" />
-		<remap from="world_describer/descriptors" to="/cloud_descriptor/world/descriptors" />
+		<remap from="world_describer/keypoints" to="/object_recognition/world/keypoints" />
+		<remap from="world_describer/descriptors/Shot352" to="/object_recognition/world/descriptors/Shot352" />
 	</node>
 
 	<node name="object_describer"  pkg="object_recognition" type="pcd_descriptor" >				
@@ -15,8 +15,8 @@
 		<param name="cloud_ss" value="0.01" />
 		<param name="rf_rad" value="0.015" />
 		<param name="descr_rad" value="0.02" />
-		<remap from="object_describer/keypoints" to="/cloud_descriptor/object/keypoints" />
-		<remap from="object_describer/descriptors" to="/cloud_descriptor/object/descriptors" />									
+		<remap from="object_describer/keypoints" to="/object_recognition/object/keypoints" />
+		<remap from="object_describer/descriptors/Shot352" to="/object_recognition/object/descriptors/Shot352" />									
 	</node>																														
 
 </launch>
