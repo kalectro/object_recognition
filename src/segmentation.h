@@ -18,6 +18,8 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/filters/passthrough.h>
+
 
 typedef pcl::PointXYZRGB PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -43,6 +45,11 @@ double radius_min, radius_max;
 
 // Size of the downsampled voxel
 double voxel_size;
+bool apply_voxel; // set to true if voxel filter should be applied
+
+// Range variables for z coordinaten in pointcloud, can be changed using parameters
+double z_min, z_max;
+bool filter_z;	// set to true if z filter is supposed to be applied
 
 // ROS message for point cloud output without the plane
 PointCloudROS output;

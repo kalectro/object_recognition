@@ -16,7 +16,6 @@
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/board.h>
 #include <pcl/keypoints/uniform_sampling.h>
-#include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
@@ -49,6 +48,8 @@ ros::Subscriber sub_descriptors_world_shot1344;
 // Publisher for debug output
 ros::Publisher pub_object;
 ros::Publisher pub_world;
+ros::Publisher pub_object2;
+ros::Publisher pub_world2;
 
 //Algorithm params
 double cg_size_, cg_thresh_, max_descr_dist_;
