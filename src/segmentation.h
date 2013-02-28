@@ -44,9 +44,6 @@ double radius_min, radius_max;
 // Size of the downsampled voxel
 double voxel_size;
 
-// ROS message for filtered point cloud
-PointCloudROS input_filtered;
-
 // ROS message for point cloud output without the plane
 PointCloudROS output;
 

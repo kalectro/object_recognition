@@ -42,6 +42,13 @@ int main(int argc, char **argv)
 	pub_descriptors_Shot352 = nh.advertise<Shot352Msg> ("descriptors/Shot352", 1);
 	pub_descriptors_Shot1344= nh.advertise<Shot1344Msg>("descriptors/Shot1344",1);
 
+	ros::spin();
+	return 0;
+}
+
+void pointcloud_incoming (const sensor_msgs::PointCloud2ConstPtr& input)
+{
+	ros::NodeHandle nh("~");
 	//
 	// retrieve all parameter variables from server or set to a default value
 	//
@@ -49,13 +56,7 @@ int main(int argc, char **argv)
 	nh.param<double>("descr_rad", descr_rad_, 0.02 );
 	nh.param<string>("output_frame", output_frame, "pcd_frame");
 
-	ros::spin();
-	return 0;
-}
 
-void pointcloud_incoming (const sensor_msgs::PointCloud2ConstPtr& input)
-{
-	ros::NodeHandle nh;
 	//
 	// create all neccessary objects
 	//

@@ -4,16 +4,13 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-	ros::init (argc, argv, "object_recognition");
+	ros::init (argc, argv, "filter_pointcloud");
 	ros::NodeHandle nh("~");
 	// Create a ROS subscriber for the input point cloud
-	sub = nh.subscribe ("pointcloud", 1, cloud_cb);
+	sub = nh.subscribe ("input", 1, cloud_cb);
+	// create publisher for filtered cloud
+	pub = nh.advertise<PointCloudROS> ("output", 1);
 	
-	// set all available variables to a default value to make them visible to the user
-	nh.setParam("plane/threshold", 0.02);
-	nh.setParam("keep_organized", true);
-	nh.setParam("voxel_size", 0.01);
-
 	// Set up SAC parameters for plane segmentation
 	seg_plane.setOptimizeCoefficients (true);
 	seg_plane.setModelType (pcl::SACMODEL_PLANE);
@@ -29,11 +26,11 @@ int main (int argc, char** argv)
 
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-	ros:: NodeHandle nh;
+	ros:: NodeHandle nh("~");
 	// get all parameters from parameter server
-	nh.getParam("plane/threshold", threshold_plane);
-	nh.getParam("keep_organized", keep_organized);
-	nh.getParam("voxel_size", voxel_size);
+	nh.param("threshold_plane", threshold_plane, 0.02);
+	nh.param("keep_organized", keep_organized, false);
+	nh.param("voxel_size", voxel_size, 0.01);
 
 	// Construct point cloud to work with
 	PointCloud::Ptr cloud (new PointCloud);
@@ -64,7 +61,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	sor.filter (*input_voxeled);
 
 	// convert the message
-	pcl::fromROSMsg (input_filtered, *cloud);
+	pcl::fromROSMsg (*input_voxeled, *cloud);
 
 	// set maximal distance from point to planar surface to be identified as plane
 	seg_plane.setDistanceThreshold (threshold_plane);
@@ -87,7 +84,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 	// fill in header
 	output.header.stamp = ros::Time::now();
-	output.header.frame_id = "pointcloud_frame";
+	output.header.frame_id = input->header.frame_id;
 
 	pub.publish(output);
 }
