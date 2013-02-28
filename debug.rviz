@@ -6,11 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Object Pointcloud1/Status1
         - /World Keypoints1/Status1
         - /TF1/Tree1
-        - /World filtered1/Status1
         - /Correspondences world1/Status1
+        - /segmented object1/Status1
       Splitter Ratio: 0.585987
     Tree Height: 818
   - Class: rviz/Selection
@@ -55,21 +54,21 @@ Visualization Manager:
         Min Intensity: 255
         Value: true
       Autocompute Value Bounds:
-        Max Value: 0.0197353
-        Min Value: -0.134392
+        Max Value: 0.0110067
+        Min Value: -0.0634752
         Value: true
       Axis: X
       Channel Name: rgba
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: false
       Name: Object Keypoints
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 5
+      Size (Pixels): 10
       Size (m): 0.01
       Style: Points
       Topic: /object_recognition/object/keypoints
@@ -79,27 +78,27 @@ Visualization Manager:
         Min Color: 0; 0; 0
         Value: true
       Value: false
-    - Alpha: 1
+    - Alpha: 0.05
       Autocompute Intensity Bounds:
-        Max Intensity: 999999
-        Min Intensity: 65793
+        Max Intensity: 255
+        Min Intensity: 255
         Value: true
       Autocompute Value Bounds:
-        Max Value: -0.709993
-        Min Value: -0.899917
+        Max Value: 0.925
+        Min Value: 0.85
         Value: true
       Axis: Z
       Channel Name: rgba
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: RGB8
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Name: Object Pointcloud
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 4
       Size (m): 0.01
       Style: Points
       Topic: /object_recognition/object/pointcloud/raw
@@ -108,7 +107,7 @@ Visualization Manager:
         Max Color: 255; 255; 255
         Min Color: 0; 0; 0
         Value: true
-      Value: false
+      Value: true
     - Alpha: 0.8
       Autocompute Intensity Bounds:
         Max Intensity: 4096
@@ -139,20 +138,20 @@ Visualization Manager:
         Min Color: 0; 0; 0
         Value: true
       Value: false
-    - Alpha: 0.05
+    - Alpha: 0.1
       Autocompute Intensity Bounds:
         Max Intensity: 4096
         Min Intensity: 0
         Value: true
       Autocompute Value Bounds:
-        Max Value: -0.501
-        Min Value: -2.063
+        Max Value: 8.55
+        Min Value: 0.848
         Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: RGB8
       Decay Time: 0
       Enabled: true
       Name: World Pointcloud
@@ -183,7 +182,7 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
-    - Alpha: 0.5
+    - Alpha: 0.2
       Autocompute Intensity Bounds:
         Max Intensity: 4096
         Min Intensity: 0
@@ -198,7 +197,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Name: World filtered
       Position Transformer: XYZ
       Queue Size: 10
@@ -212,8 +211,8 @@ Visualization Manager:
         Max Color: 255; 255; 255
         Min Color: 0; 0; 0
         Value: true
-      Value: false
-    - Alpha: 1
+      Value: true
+    - Alpha: 0.8
       Autocompute Intensity Bounds:
         Max Intensity: 4096
         Min Intensity: 0
@@ -226,16 +225,16 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 0; 0
-      Color Transformer: RGB8
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Name: Correspondences world
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.02
-      Style: Squares
+      Size (Pixels): 10
+      Size (m): 0.01
+      Style: Points
       Topic: /correspondences/world
       Use Fixed Frame: true
       Use rainbow:
@@ -255,17 +254,17 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 255; 255; 0
-      Color Transformer: RGB8
+      Color: 0; 170; 0
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Name: Correspondences Object
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.02
-      Style: Boxes
+      Size (Pixels): 10
+      Size (m): 0.01
+      Style: Points
       Topic: /correspondences/object
       Use Fixed Frame: true
       Use rainbow:
@@ -273,6 +272,96 @@ Visualization Manager:
         Min Color: 0; 0; 0
         Value: true
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds:
+        Max Intensity: 4096
+        Min Intensity: 0
+        Value: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Name: segmented object
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Flat Squares
+      Topic: /filter_world/output
+      Use Fixed Frame: true
+      Use rainbow:
+        Max Color: 255; 255; 255
+        Min Color: 0; 0; 0
+        Value: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds:
+        Max Intensity: 4096
+        Min Intensity: 0
+        Value: true
+      Autocompute Value Bounds:
+        Max Value: -0.63998
+        Min Value: -0.776179
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 170; 0
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: false
+      Name: clustered correspondences object
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 5
+      Size (m): 0.01
+      Style: Points
+      Topic: /correspondences/object/clustered
+      Use Fixed Frame: true
+      Use rainbow:
+        Max Color: 255; 255; 255
+        Min Color: 0; 0; 0
+        Value: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds:
+        Max Intensity: 4096
+        Min Intensity: 0
+        Value: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 0; 255
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: false
+      Name: clustered correspondences world
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 5
+      Size (m): 0.01
+      Style: Points
+      Topic: /correspondences/world/clustered
+      Use Fixed Frame: true
+      Use rainbow:
+        Max Color: 255; 255; 255
+        Min Color: 0; 0; 0
+        Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -291,17 +380,17 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.457765
+      Distance: 0.174377
       Focal Point:
-        X: -0.119044
-        Y: -0.0513805
-        Z: -0.224316
+        X: -0.0290324
+        Y: 0.000764363
+        Z: -0.253912
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.5248
+      Pitch: -1.5698
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.68296
+      Yaw: 4.66476
     Saved:
       - Class: rviz/Orbit
         Distance: 10
@@ -318,7 +407,7 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1056
+  Height: 1092
   Hide Left Dock: false
   Hide Right Dock: false
   QMainWindow State: 000000ff00000000fd00000004000000000000015e000003c1fc0200000006fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000041000003c1000000dd00fffffffb0000000a0049006d006100670065000000034b000000e10000000000000000000000010000010f000003c1fc0200000004fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000c00430061006d006500720061020000033c00000141000003cd00000246fc00000041000003c1000000b000fffffffa000000010100000002fb0000000c00430061006d0065007200610000000000ffffffff0000000000000000fb0000000a0056006900650077007301000003a10000010f0000010f00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a0000002bf00fffffffb0000000800540069006d00650100000000000004500000000000000000000004c6000003c100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
@@ -330,6 +419,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1855
-  X: 64
-  Y: -1
+  Width: 1871
+  X: 56
+  Y: -29

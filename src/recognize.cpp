@@ -79,6 +79,9 @@ void object_descriptor_shot352_cb (const object_recognition::Shot352_bundle::Ptr
 		return;
 	}
 	
+	// Debug output 
+	ROS_INFO("Received %i descriptors for the world and %i for the object", (int)world_descriptors_shot352->size(), (int)input->descriptors.size());
+
 	object_descriptors_shot352 = DescriptorCloudShot352::Ptr (new DescriptorCloudShot352 ());
 	fromROSMsg(*input, *object_descriptors_shot352);
 	//
@@ -199,8 +202,10 @@ int main(int argc, char **argv)
 	sub_descriptors_object_shot1344= nh.subscribe ("/object_recognition/object/descriptors/Shot1344", 1, object_descriptor_shot1344_cb);
 	sub_descriptors_world_shot1344 = nh.subscribe ("/object_recognition/world/descriptors/Shot1344" , 1, world_descriptor_shot1344_cb );
 
-	pub_object = nh.advertise<PointCloudROS> ("correspondences/object", 1);	
-	pub_world = nh.advertise<PointCloudROS> ("correspondences/world", 1);
+	pub_object = nh.advertise<PointCloudROS> ("correspondences/object/clustered", 1);	
+	pub_world = nh.advertise<PointCloudROS> ("correspondences/world/clustered", 1);
+	pub_object2 = nh.advertise<PointCloudROS> ("correspondences/object", 1);	
+	pub_world2 = nh.advertise<PointCloudROS> ("correspondences/world", 1);
 
 	// Get the parameter for the maximum descriptor distance 
 	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
@@ -214,6 +219,29 @@ int main(int argc, char **argv)
 
 void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 {
+	//
+	// Debug output
+	//
+	PointCloud correspondence_object;
+	PointCloud correspondence_world;
+	cout << object_world_corrs->size () << endl;
+	for (int j = 0; j < object_world_corrs->size (); ++j)
+  {
+    PointType& model_point = object_keypoints->at(object_world_corrs->at(j).index_query);
+    PointType& scene_point = world_keypoints->at(object_world_corrs->at(j).index_match);
+		correspondence_object.push_back(model_point);
+		correspondence_world.push_back(scene_point);
+  }
+
+	PointCloudROS pub_me_object2;
+	PointCloudROS pub_me_world2;
+	toROSMsg(correspondence_object, pub_me_object2);
+	toROSMsg(correspondence_world, pub_me_world2);
+	pub_me_object2.header.frame_id = "/object";
+	pub_me_world2.header.frame_id = "/world";
+	pub_object2.publish(pub_me_object2);
+	pub_world2.publish(pub_me_world2);
+
   //
   //  Actual Clustering
   //
@@ -274,21 +302,21 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		//
 		// Debug output
 		//
-		PointCloud correspondence_object;
-		PointCloud correspondence_world;
+		PointCloud correspondence_object_cluster;
+		PointCloud correspondence_world_cluster;
 		
 		for (int j = 0; j < clustered_corrs[0].size (); ++j)
     {
       PointType& model_point = object_keypoints->at(clustered_corrs[0][j].index_query);
       PointType& scene_point = world_keypoints->at(clustered_corrs[0][j].index_match);
-			correspondence_object.push_back(model_point);
-			correspondence_world.push_back(scene_point);
+			correspondence_object_cluster.push_back(model_point);
+			correspondence_world_cluster.push_back(scene_point);
     }
 
 		PointCloudROS pub_me_object;
 		PointCloudROS pub_me_world;
-		toROSMsg(correspondence_object, pub_me_object);
-		toROSMsg(correspondence_world, pub_me_world);
+		toROSMsg(correspondence_object_cluster, pub_me_object);
+		toROSMsg(correspondence_world_cluster, pub_me_world);
 		pub_me_object.header.frame_id = "/object";
 		pub_me_world.header.frame_id = "/world";
 		pub_object.publish(pub_me_object);
