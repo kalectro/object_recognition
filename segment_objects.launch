@@ -1,0 +1,9 @@
+<launch>
+	<node name="filter_world"  pkg="object_recognition" type="filter_pointcloud" >
+		<param name="keep_organized" value="false" />
+		<param name="apply_voxel" value="false" />
+		<param name="filter_z" value="true" />
+		<param name="threshold_plane" value="0.03" />
+		<remap from="/filter_world/input" to="/cloud_pcd" />
+	</node>
+</launch>
