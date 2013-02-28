@@ -1,36 +1,28 @@
 /*
  *
- *  Created on: Feb 24, 2013
+ *  Created on: Feb 27, 2013
  *      Author: Kai Franke
  */
 
-#include "pcd_to_descriptors.h"
-
-void toROSMsg(const DescriptorCloud &input, object_recognition::Shot352_bundle &output)
-{
-	output.descriptors.resize(input.size());
-	for (int j = 0 ; j < input.size() ; ++j)
-	{	
-		std::copy(input[j].descriptor, input[j].descriptor + 352 , output.descriptors[j].descriptor.begin());
-		std::copy(input[j].rf, input[j].rf + 9, output.descriptors[j].rf.begin());
-	}
-}
+#include "pcd_to_pointcloud.h"
 
 int main(int argc, char **argv)
 {
 	//
 	// take care of the ROS stuff
 	//
-	ros::init(argc, argv, "cloud_descriptor");
+	ros::init(argc, argv, "pcd_descriptor");
 	ros::NodeHandle nh("~");
 
 	// Create a ROS publisher for the output model coefficients
-	pub_keypoints   = nh.advertise<sensor_msgs::PointCloud2> ("keypoints", 1);
-	pub_descriptors = nh.advertise<object_recognition::Shot352_bundle> ("descriptors", 1);
+	pub_keypoints = nh.advertise<KeypointMsg> ("keypoints", 1);
+	pub_descriptors_Shot352 = nh.advertise<Shot352Msg> ("descriptors/Shot352", 1);
+	pub_descriptors_Shot1344= nh.advertise<Shot1344Msg>("descriptors/Shot1344",1);
 
 	// create objects
-	output_keypoints = sensor_msgs::PointCloud2::Ptr (new sensor_msgs::PointCloud2);	
-	output_descriptors = object_recognition::Shot352_bundle::Ptr (new object_recognition::Shot352_bundle);
+	output_keypoints = KeypointMsg::Ptr (new KeypointMsg);	
+	output_descriptors_shot352 = Shot352Msg ::Ptr (new Shot352Msg );
+	output_descriptors_shot1344= Shot1344Msg::Ptr (new Shot1344Msg);
 
 	// If parameter pcd_path was not specified
 	if (!nh.getParam("pcd_path", pcd_path))
@@ -44,10 +36,11 @@ int main(int argc, char **argv)
 	//
 	// create all neccessary objects
 	//
-	cloud               = PointCloud::Ptr     (new PointCloud    ());
-	cloud_keypoints     = PointCloud::Ptr     (new PointCloud    ());
-	cloud_normals       = NormalCloud::Ptr    (new NormalCloud   ());
-	cloud_descriptors   = DescriptorCloud::Ptr(new DescriptorCloud());
+	cloud               			= PointCloud::Ptr     				(new PointCloud    ());
+	cloud_keypoints     			= PointCloud::Ptr     				(new PointCloud    ());
+	cloud_normals       			= NormalCloud::Ptr						(new NormalCloud   ());
+	cloud_descriptors_shot352 = DescriptorCloudShot352::Ptr	(new DescriptorCloudShot352());
+	cloud_descriptors_shot1344= DescriptorCloudShot1344::Ptr(new DescriptorCloudShot1344());
 
 	
 	//
@@ -61,7 +54,6 @@ int main(int argc, char **argv)
 
 	// retrieve all parameter variables from server or set to a default value
 	nh.param<double>("cloud_ss" , cloud_ss_ , 0.01 );
-	nh.param<double>("rf_rad"   , rf_rad_   , 0.015);
 	nh.param<double>("descr_rad", descr_rad_, 0.02 );
 	nh.param<string>("output_frame", output_frame, "pcd_frame");
 
@@ -89,24 +81,31 @@ int main(int argc, char **argv)
 	// Extract descriptors
 	//
 	cout << "... extracting descriptors from cloud ..." << endl;
-	descr_est_cloud.setInputCloud (cloud_keypoints);
-	descr_est_cloud.setRadiusSearch (descr_rad_);
-	descr_est_cloud.setInputNormals (cloud_normals);
-	descr_est_cloud.setSearchSurface (cloud);
-	descr_est_cloud.compute (*cloud_descriptors);
+	descr_est_shot352.setInputCloud (cloud_keypoints);
+	descr_est_shot352.setRadiusSearch (descr_rad_);
+	descr_est_shot352.setInputNormals (cloud_normals);
+	descr_est_shot352.setSearchSurface (cloud);
+	descr_est_shot352.compute (*cloud_descriptors_shot352);
+
+	descr_est_shot1344.setInputCloud (cloud_keypoints);
+	descr_est_shot1344.setRadiusSearch (descr_rad_);
+	descr_est_shot1344.setInputNormals (cloud_normals);
+	descr_est_shot1344.setSearchSurface (cloud);
+	descr_est_shot1344.compute (*cloud_descriptors_shot1344);
 
 	//
 	// Convert to ROS message
 	//
 	pcl::toROSMsg(*cloud_keypoints, *output_keypoints);
-	toROSMsg(*cloud_descriptors, *output_descriptors);
+	toROSMsg(*cloud_descriptors_shot352, *output_descriptors_shot352);
+	toROSMsg(*cloud_descriptors_shot1344, *output_descriptors_shot1344);
 	output_keypoints->header.frame_id = output_frame;
 
-	// check if anyone subscribed
-	if (pub_keypoints.getNumSubscribers() == 0 || pub_descriptors.getNumSubscribers() == 0)
+	// check if anyone subscribed to keypoints
+	if (pub_keypoints.getNumSubscribers() == 0)
 	{
-		ROS_WARN("No subscriber found");
-		while (pub_keypoints.getNumSubscribers() == 0)
+		ROS_WARN("No keypoint subscriber found");
+		while (pub_keypoints.getNumSubscribers() == 0 && ros::ok())
 		{
 			ros::Duration(1).sleep();
 		}
@@ -115,12 +114,12 @@ int main(int argc, char **argv)
 		ros::Duration(1).sleep();
 	}
 
-
 	//
 	// Publish Keypoints and Descriptors
 	//
 	pub_keypoints.publish(*output_keypoints);
-	pub_descriptors.publish(*output_descriptors);
+	pub_descriptors_Shot352.publish(*output_descriptors_shot352);
+	pub_descriptors_Shot1344.publish(*output_descriptors_shot1344);
 	// wait before killing node to be able to transmit pointcloud
 	ros::Duration(2).sleep();
 	ros::spinOnce();
