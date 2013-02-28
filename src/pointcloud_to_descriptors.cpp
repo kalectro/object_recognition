@@ -4,7 +4,7 @@
  *      Author: Kai Franke
  */
 
-#include "pcd_to_descriptors.h"
+#include "pointcloud_to_descriptors.h"
 
 // overloaded function to convert the PCL descriptor type to a custom ROS message
 void toROSMsg(const DescriptorCloudShot352 &input, Shot352Msg &output)
@@ -31,51 +31,49 @@ int main(int argc, char **argv)
 	//
 	// take care of the ROS stuff
 	//
-	ros::init(argc, argv, "pcd_descriptor");
+	ros::init(argc, argv, "pointcloud_descriptor");
 	ros::NodeHandle nh("~");
+
+	// Create a ROS subscriber for the input point cloud
+	sub = nh.subscribe ("input", 1, pointcloud_incoming);
 
 	// Create a ROS publisher for the output model coefficients
 	pub_keypoints = nh.advertise<KeypointMsg> ("keypoints", 1);
 	pub_descriptors_Shot352 = nh.advertise<Shot352Msg> ("descriptors/Shot352", 1);
 	pub_descriptors_Shot1344= nh.advertise<Shot1344Msg>("descriptors/Shot1344",1);
 
-	// create objects
-	output_keypoints = KeypointMsg::Ptr (new KeypointMsg);	
-	output_descriptors_shot352 = Shot352Msg ::Ptr (new Shot352Msg );
-	output_descriptors_shot1344= Shot1344Msg::Ptr (new Shot1344Msg);
+	//
+	// retrieve all parameter variables from server or set to a default value
+	//
+	nh.param<double>("cloud_ss" , cloud_ss_ , 0.01 );
+	nh.param<double>("descr_rad", descr_rad_, 0.02 );
+	nh.param<string>("output_frame", output_frame, "pcd_frame");
 
-	// If parameter pcd_path was not specified
-	if (!nh.getParam("pcd_path", pcd_path))
-	{
-		ROS_ERROR("Private parameter pcd_path not found");
-		ROS_ERROR("Usage: rosrun object_recognition pcd_descriptor _pcd_path:=/path/to/pcd");
-		return -1;
-	}
-	
+	ros::spin();
+	return 0;
+}
 
+void pointcloud_incoming (const sensor_msgs::PointCloud2ConstPtr& input)
+{
+	ros::NodeHandle nh;
 	//
 	// create all neccessary objects
 	//
+	output_keypoints = KeypointMsg::Ptr (new KeypointMsg);	
+	output_descriptors_shot352 = Shot352Msg ::Ptr (new Shot352Msg );
+	output_descriptors_shot1344= Shot1344Msg::Ptr (new Shot1344Msg);	
+
 	cloud               			= PointCloud::Ptr     				(new PointCloud    ());
 	cloud_keypoints     			= PointCloud::Ptr     				(new PointCloud    ());
 	cloud_normals       			= NormalCloud::Ptr						(new NormalCloud   ());
 	cloud_descriptors_shot352 = DescriptorCloudShot352::Ptr	(new DescriptorCloudShot352());
 	cloud_descriptors_shot1344= DescriptorCloudShot1344::Ptr(new DescriptorCloudShot1344());
 
-	
 	//
-	// load the pcd into the point cloud
+	// convert ROS message to PCL message
 	//
-	if (pcl::io::loadPCDFile (pcd_path, *cloud) == -1) 
-	{
-		PCL_ERROR ("Couldn't read file %s \n", pcd_path.c_str());
-		return (-1);
-	}
+	fromROSMsg(*input, *cloud);
 
-	// retrieve all parameter variables from server or set to a default value
-	nh.param<double>("cloud_ss" , cloud_ss_ , 0.01 );
-	nh.param<double>("descr_rad", descr_rad_, 0.02 );
-	nh.param<string>("output_frame", output_frame, "pcd_frame");
 
 	//
 	// compute normals
@@ -140,9 +138,4 @@ int main(int argc, char **argv)
 	pub_keypoints.publish(*output_keypoints);
 	pub_descriptors_Shot352.publish(*output_descriptors_shot352);
 	pub_descriptors_Shot1344.publish(*output_descriptors_shot1344);
-	// wait before killing node to be able to transmit pointcloud
-	ros::Duration(2).sleep();
-	ros::spinOnce();
-
-	return 0;
 }

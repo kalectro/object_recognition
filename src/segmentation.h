@@ -17,6 +17,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/features/normal_3d.h>
 
 typedef pcl::PointXYZRGB PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -30,14 +31,9 @@ inline void duration(bool identifier);
 // if true filtered points will be removed from the point cloud, if false overwritten by NaN
 bool keep_organized;
 
-// Initialize Subscriber
+// Initialize Subscriber and Publisher
 ros::Subscriber sub;
-
-// Do you want to filter the depth for a specific depth range?
-bool filter_z;
-
-// Range variables for z coordinaten in pointcloud, can be changed using parameters
-double z_min, z_max;
+ros::Publisher pub;
 
 // Distance threshold for plane
 double threshold_plane;

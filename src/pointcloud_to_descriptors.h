@@ -38,10 +38,11 @@ typedef object_recognition::Shot1344_bundle Shot1344Msg;
 
 using namespace std;
 
-// Initialize Publisher for keypoints and descriptors
+// Initialize subscriber and publisher for keypoints and descriptors
 ros::Publisher pub_keypoints;
 ros::Publisher pub_descriptors_Shot352;
 ros::Publisher pub_descriptors_Shot1344;
+ros::Subscriber sub;
 
 string pcd_path;
 
@@ -64,3 +65,8 @@ pcl::PointCloud<int> sampled_indices_cloud;
 pcl::UniformSampling<PointType> uniform_sampling_cloud;
 pcl::SHOTEstimationOMP<PointType, NormalType, SHOT352> descr_est_shot352;
 pcl::SHOTColorEstimationOMP<PointType, NormalType, SHOT1344> descr_est_shot1344;
+
+// function prototypes
+void pointcloud_incoming (const sensor_msgs::PointCloud2ConstPtr& input);
+void toROSMsg(const DescriptorCloudShot352 &input, Shot352Msg &output);
+void toROSMsg(const DescriptorCloudShot1344 &input, Shot1344Msg &output);

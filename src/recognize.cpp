@@ -268,10 +268,11 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		transform.setRotation (object_rotation);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
 	
-		while (ros::ok())
-		{
-			br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
-			ros::Duration(1).sleep();
-		}
+		break;
+		//while (ros::ok())
+		//{
+		//	br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
+		//	ros::Duration(1).sleep();
+		//}
   }
 }

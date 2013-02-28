@@ -5,15 +5,14 @@ using namespace std;
 int main (int argc, char** argv)
 {
 	ros::init (argc, argv, "object_recognition");
-	ros::NodeHandle nh;
-	ros::NodeHandle nh_private("~");
+	ros::NodeHandle nh("~");
 	// Create a ROS subscriber for the input point cloud
 	sub = nh.subscribe ("pointcloud", 1, cloud_cb);
 	
 	// set all available variables to a default value to make them visible to the user
-	nh.setParam("/ros_benchmark/pcl_segmentation/plane/threshold", 0.02);
-	nh.setParam("/ros_benchmark/pcl_segmentation/keep_organized", true);
-	nh.setParam("/ros_benchmark/pcl_segmentation/voxel_size", 0.01);
+	nh.setParam("plane/threshold", 0.02);
+	nh.setParam("keep_organized", true);
+	nh.setParam("voxel_size", 0.01);
 
 	// Set up SAC parameters for plane segmentation
 	seg_plane.setOptimizeCoefficients (true);
@@ -23,9 +22,6 @@ int main (int argc, char** argv)
 	
 	// Extract the found plane to remove the table
 	extract_planes.setNegative (true);
-
-	// get verbosity for pcd output
-	nh_private.param<bool>("output_pcd", output_pcd, false);
 
 	// Spin
 	ros::spin ();
@@ -82,8 +78,6 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	extract_planes.setInputCloud(cloud);
 	extract_planes.setIndices (inliers_plane);
 	extract_planes.setKeepOrganized(keep_organized);
-	// limit size for radius in meters
-	seg_cylinder.setRadiusLimits (radius_min, radius_max);
 	extract_planes.filter (*cloud_no_plane);
 
 	//
@@ -95,5 +89,6 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	output.header.stamp = ros::Time::now();
 	output.header.frame_id = "pointcloud_frame";
 
+	pub.publish(output);
 }
 
