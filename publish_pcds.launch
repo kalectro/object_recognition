@@ -1,10 +1,10 @@
 <launch>
-	<node name="world_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="/home/frk1pal/catkin_ws/src/ros_object_recognition/pcds/world.pcd 5" >
+	<node name="world_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="/home/frk1pal/catkin_ws/src/ros_object_recognition/pcds/world2.pcd 5" >
 		<param name="frame_id" value="/world" />
 		<remap from="/cloud_pcd" to="/object_recognition/world/pointcloud/raw" />
 	</node>
 
-	<node name="object_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="/home/frk1pal/catkin_ws/src/ros_object_recognition/pcds/object.pcd 5" >
+	<node name="object_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="/home/frk1pal/catkin_ws/src/ros_object_recognition/pcds/object2.pcd 5" >
 		<param name="frame_id" value="/object" />
 		<remap from="/cloud_pcd" to="/object_recognition/object/pointcloud/raw" />								
 	</node>																														
