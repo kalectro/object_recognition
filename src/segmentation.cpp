@@ -31,6 +31,10 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	nh.param("threshold_plane", threshold_plane, 0.02);
 	nh.param("keep_organized", keep_organized, false);
 	nh.param("voxel_size", voxel_size, 0.01);
+	nh.param("apply_voxel", apply_voxel, true);
+	nh.param("z_min_distance", z_min, 0.0);
+	nh.param("z_max_distance", z_max, 1.0);
+	nh.param("filter_z", filter_z, false);
 
 	// Construct point cloud to work with
 	PointCloud::Ptr cloud (new PointCloud);
@@ -47,21 +51,56 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	// Create KdTree needed for normal estimation
 	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
 
-	// Create a pointcloud to store the downsampled point cloud
-	PointCloudROS::Ptr input_voxeled (new PointCloudROS);
+	// Create pass through point cloud for point filtering
+	pcl::PassThrough<sensor_msgs::PointCloud2> pt(false);
 
+	// Create a pointcloud to store the z filtered cloud
+	PointCloudROS::Ptr cloud_z_filtered (new PointCloudROS);
+
+	// Create a pointcloud to store the voxeled pointcloud
+	PointCloudROS::Ptr cloud_voxeled (new PointCloudROS);
 
 	//
-	// measure time for downscaling the points
+	// filter z values within a certain range set by parameters
 	//
-	// Create the filtering object and downsample the dataset using the parameter leaf size
-	pcl::VoxelGrid<PointCloudROS> sor;
-	sor.setInputCloud (input);
-	sor.setLeafSize (voxel_size,voxel_size,voxel_size);
-	sor.filter (*input_voxeled);
+	// check if z values are supposed to be filtered (default: false)
+	if(filter_z)
+	{
+		if(z_max-z_min <= 0)
+		{
+			ROS_WARN("Please make sure the parameter z_min_distance is smaller than z_max_distance");
+			return;
+		}
+		// set parameters for z axis filtering
+		pt.setInputCloud(input);
+		pt.setKeepOrganized(keep_organized);
+		pt.setFilterFieldName("z");
+		pt.setFilterLimits(z_min, z_max);
+		pt.filter(*cloud_z_filtered);
+	}	
+	
+	//
+	// downscale the points
+	//
+	if(apply_voxel)
+	{
+		// Create the filtering object and downsample the dataset using the parameter leaf size
+		pcl::VoxelGrid<PointCloudROS> sor;
+		if(filter_z)
+			sor.setInputCloud (cloud_z_filtered);
+		else
+			sor.setInputCloud (input);
+		sor.setLeafSize (voxel_size,voxel_size,voxel_size);
+		sor.filter (*cloud_voxeled);
+	}
 
 	// convert the message
-	pcl::fromROSMsg (*input_voxeled, *cloud);
+	if (apply_voxel)
+		pcl::fromROSMsg (*cloud_voxeled, *cloud);
+	else if (filter_z)
+		pcl::fromROSMsg (*cloud_z_filtered, *cloud);
+	else
+		pcl::fromROSMsg (*input, *cloud);
 
 	// set maximal distance from point to planar surface to be identified as plane
 	seg_plane.setDistanceThreshold (threshold_plane);
