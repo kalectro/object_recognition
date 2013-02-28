@@ -199,6 +199,9 @@ int main(int argc, char **argv)
 	sub_descriptors_object_shot1344= nh.subscribe ("/object_recognition/object/descriptors/Shot1344", 1, object_descriptor_shot1344_cb);
 	sub_descriptors_world_shot1344 = nh.subscribe ("/object_recognition/world/descriptors/Shot1344" , 1, world_descriptor_shot1344_cb );
 
+	pub_object = nh.advertise<PointCloudROS> ("correspondences/object", 1);	
+	pub_world = nh.advertise<PointCloudROS> ("correspondences/world", 1);
+
 	// Get the parameter for the maximum descriptor distance 
 	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
 	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
@@ -267,12 +270,32 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		transform.setOrigin (object_offset);
 		transform.setRotation (object_rotation);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
-	
+
+		//
+		// Debug output
+		//
+		PointCloud correspondence_object;
+		PointCloud correspondence_world;
+		
+		for (int j = 0; j < clustered_corrs[0].size (); ++j)
+    {
+      PointType& model_point = object_keypoints->at(clustered_corrs[0][j].index_query);
+      PointType& scene_point = world_keypoints->at(clustered_corrs[0][j].index_match);
+			correspondence_object.push_back(model_point);
+			correspondence_world.push_back(scene_point);
+    }
+
+		PointCloudROS pub_me_object;
+		PointCloudROS pub_me_world;
+		toROSMsg(correspondence_object, pub_me_object);
+		toROSMsg(correspondence_world, pub_me_world);
+		pub_me_object.header.frame_id = "/object";
+		pub_me_world.header.frame_id = "/world";
+		pub_object.publish(pub_me_object);
+		pub_world.publish(pub_me_world);
+
+
+		// only look at the first correspondence
 		break;
-		//while (ros::ok())
-		//{
-		//	br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "object"));
-		//	ros::Duration(1).sleep();
-		//}
   }
 }

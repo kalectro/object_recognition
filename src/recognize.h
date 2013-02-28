@@ -34,6 +34,7 @@ typedef pcl::PointCloud<SHOT352> DescriptorCloudShot352;
 typedef pcl::PointCloud<SHOT1344> DescriptorCloudShot1344;
 typedef object_recognition::Shot352_bundle Shot352Msg;
 typedef object_recognition::Shot1344_bundle Shot1344Msg;
+typedef sensor_msgs::PointCloud2 PointCloudROS;
 
 using namespace std;
 
@@ -45,8 +46,9 @@ ros::Subscriber sub_descriptors_object_shot1344;
 ros::Subscriber sub_descriptors_world_shot352;
 ros::Subscriber sub_descriptors_world_shot1344;
 
-// Initialize Publisher for object tf frame in world
-ros::Publisher pub_object_tf;
+// Publisher for debug output
+ros::Publisher pub_object;
+ros::Publisher pub_world;
 
 //Algorithm params
 double cg_size_, cg_thresh_, max_descr_dist_;
