@@ -266,9 +266,6 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
   std::cout << "Object instances found: " << rototranslations.size () << std::endl;
   for (size_t i = 0; i < rototranslations.size (); ++i)
   {
-    std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
-    std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
-    
     // Print the rotation matrix and translation vector
     Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0, 0);
     Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
@@ -323,7 +320,12 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		pub_world.publish(pub_me_world);
 
 
-		// only look at the first correspondence
+		// only publish the first correspondence
 		break;
   }
+
+	for (int i = 0; i < rototranslations.size (); ++i)
+	{
+		cout << "Instance "<< i << " had " << clustered_corrs[i].size () << " correspondences" << endl;
+	}
 }
