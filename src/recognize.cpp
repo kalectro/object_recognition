@@ -59,7 +59,9 @@ void world_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::Pt
 // this will also trigger the recognition if all the other keypoints and descriptors have been received
 void object_descriptor_shot352_cb (const object_recognition::Shot352_bundle::Ptr input)
 {
-	ros::NodeHandle nh;
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
+
 	// check if world was already processed
 	if (world_descriptors_shot352 == NULL)
 	{
@@ -125,6 +127,8 @@ void object_descriptor_shot352_cb (const object_recognition::Shot352_bundle::Ptr
 // this will also trigger the recognition if all the other keypoints and descriptors have been received
 void object_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::Ptr input)
 {
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
 	// check if world was already processed
 	if (world_descriptors_shot1344 == NULL)
 	{
@@ -181,26 +185,32 @@ void object_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::P
 			bool found_better_result = false;
 			for (int j = 0; j < object_world_corrs->size(); ++j)
 			{
-				// does it match the same point index on the object
+				// is the found neigbor the same one like in the correspondence j
 				if (object_world_corrs->at(j).index_query == neigh_indices[0])
 				{
+					// do not add a new correspondence later
+					found_better_result = true;
 					// is the new distance smaller? (that means better)
 					if (neigh_sqr_dists[0] < object_world_corrs->at(j).distance)
 					{
+						// replace correspondence with better one
 						object_world_corrs->at(j) = corr;
-						found_better_result = true;
 					}
+					else
+						// break out of inner loop to save time and try next keypoint
+						break;
 				}
 			}
 			// if this is a new correspondence, add a new correspondence at the end
 			if (!found_better_result)
-				object_world_corrs->push_back (corr);			
+				object_world_corrs->push_back (corr);	
 		}
 	}
 	std::cout << "Correspondences found: " << object_world_corrs->size () << std::endl;
-	
+
+
 	//
-	// all keypoints and descriptors were found, no match the correspondences to the real object!
+	// all correspondences were found, now match the correspondences to the real object!
 	//
 	cluster(object_world_corrs);
 }
@@ -225,11 +235,6 @@ int main(int argc, char **argv)
 	pub_object2 = nh.advertise<PointCloudROS> ("correspondences/object", 1);	
 	pub_world2 = nh.advertise<PointCloudROS> ("correspondences/world", 1);
 
-	// Get the parameter for the maximum descriptor distance 
-	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
-	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
-	nh_param.param<double>("cg_thresh", cg_thresh_, 5.0);
-
 	ros::spin();
 	return 0;
 }
@@ -237,6 +242,10 @@ int main(int argc, char **argv)
 
 void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 {
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
+	nh_param.param<double>("cg_thresh", cg_thresh_, 5.0);
+
 	//
 	// Debug output
 	//
@@ -251,8 +260,8 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		correspondence_world.push_back(world_point);
 
 		
-		cout << object_point.x << " " << object_point.y << " " <<  object_point.z << endl;
-		cout << world_point.x << " " << world_point.y << " " <<  world_point.z << endl;
+		// cout << object_point.x << " " << object_point.y << " " <<  object_point.z << endl;
+		// cout << world_point.x << " " << world_point.y << " " <<  world_point.z << endl;
   }
 
 	PointCloudROS pub_me_object2;

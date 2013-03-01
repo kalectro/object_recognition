@@ -1,6 +1,7 @@
 <launch>
-	<node name="recognize"  pkg="object_recognition" type="object_recognition_node" >
-		<param name="cg_size" value="0.04" />
+	<node name="recognize"  pkg="object_recognition" type="object_recognition_node" args="--screen" >
+		<param name="cg_size" value="0.02" />
 		<param name="cg_thresh" value="10" />
+		<param name="maximum_descriptor_distance" value="0.5" />
 	</node>
 </launch>
