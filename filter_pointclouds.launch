@@ -7,7 +7,7 @@
 		<param name="filter_z" value="true" />
 		<param name="z_min_distance" value="0.0" />
 		<param name="z_max_distance" value="1.5" />
-		<param name="threshold_plane" value="0.02" />
+		<param name="threshold_plane" value="0.015" />
 		<remap from="/filter_world/input" to="/object_recognition/world/pointcloud/raw" />
 		<remap from="/filter_world/output" to="/object_recognition/world/pointcloud/filtered" />
 	</node>
