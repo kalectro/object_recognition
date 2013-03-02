@@ -3,7 +3,9 @@
 		<param name="keep_organized" value="false" />
 		<param name="apply_voxel" value="false" />
 		<param name="filter_z" value="true" />
-		<param name="threshold_plane" value="0.03" />
+		<param name="z_min_distance" value="0.0" />
+		<param name="z_max_distance" value="1.5" />
+		<param name="threshold_plane" value="0.025" />
 		<remap from="/filter_world/input" to="/cloud_pcd" />
 	</node>
 </launch>
