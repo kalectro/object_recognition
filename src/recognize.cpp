@@ -59,7 +59,9 @@ void world_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::Pt
 // this will also trigger the recognition if all the other keypoints and descriptors have been received
 void object_descriptor_shot352_cb (const object_recognition::Shot352_bundle::Ptr input)
 {
-	ros::NodeHandle nh;
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
+
 	// check if world was already processed
 	if (world_descriptors_shot352 == NULL)
 	{
@@ -125,6 +127,8 @@ void object_descriptor_shot352_cb (const object_recognition::Shot352_bundle::Ptr
 // this will also trigger the recognition if all the other keypoints and descriptors have been received
 void object_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::Ptr input)
 {
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
 	// check if world was already processed
 	if (world_descriptors_shot1344 == NULL)
 	{
@@ -171,18 +175,42 @@ void object_descriptor_shot1344_cb (const object_recognition::Shot1344_bundle::P
 			continue;
 		}
 		int found_neighs = match_search.nearestKSearch (world_descriptors_shot1344->at (i), 1, neigh_indices, neigh_sqr_dists);
-		// add match only if the squared descriptor distance is less than 0.25 
+		// add match only if the squared descriptor distance is less than max_descr_dist_ 
 		// SHOT descriptor distances are between 0 and 1 by design
 		if(found_neighs == 1 && neigh_sqr_dists[0] < (float)max_descr_dist_) 
 		{
 			pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
-			object_world_corrs->push_back (corr);
+
+			// check if new correspondence is better than any previous at this point
+			bool found_better_result = false;
+			for (int j = 0; j < object_world_corrs->size(); ++j)
+			{
+				// is the found neigbor the same one like in the correspondence j
+				if (object_world_corrs->at(j).index_query == neigh_indices[0])
+				{
+					// do not add a new correspondence later
+					found_better_result = true;
+					// is the new distance smaller? (that means better)
+					if (neigh_sqr_dists[0] < object_world_corrs->at(j).distance)
+					{
+						// replace correspondence with better one
+						object_world_corrs->at(j) = corr;
+					}
+					else
+						// break out of inner loop to save time and try next keypoint
+						break;
+				}
+			}
+			// if this is a new correspondence, add a new correspondence at the end
+			if (!found_better_result)
+				object_world_corrs->push_back (corr);	
 		}
 	}
 	std::cout << "Correspondences found: " << object_world_corrs->size () << std::endl;
-	
+
+
 	//
-	// all keypoints and descriptors were found, no match the correspondences to the real object!
+	// all correspondences were found, now match the correspondences to the real object!
 	//
 	cluster(object_world_corrs);
 }
@@ -207,11 +235,6 @@ int main(int argc, char **argv)
 	pub_object2 = nh.advertise<PointCloudROS> ("correspondences/object", 1);	
 	pub_world2 = nh.advertise<PointCloudROS> ("correspondences/world", 1);
 
-	// Get the parameter for the maximum descriptor distance 
-	nh_param.param<double>("maximum_descriptor_distance" , max_descr_dist_ , 0.25 );
-	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
-	nh_param.param<double>("cg_thresh", cg_thresh_, 5.0);
-
 	ros::spin();
 	return 0;
 }
@@ -219,18 +242,26 @@ int main(int argc, char **argv)
 
 void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 {
+	ros::NodeHandle nh_param("~");
+	nh_param.param<double>("cg_size" , cg_size_ , 0.01 );
+	nh_param.param<double>("cg_thresh", cg_thresh_, 5.0);
+
 	//
 	// Debug output
 	//
 	PointCloud correspondence_object;
 	PointCloud correspondence_world;
-	cout << object_world_corrs->size () << endl;
 	for (int j = 0; j < object_world_corrs->size (); ++j)
   {
-    PointType& model_point = object_keypoints->at(object_world_corrs->at(j).index_query);
-    PointType& scene_point = world_keypoints->at(object_world_corrs->at(j).index_match);
-		correspondence_object.push_back(model_point);
-		correspondence_world.push_back(scene_point);
+    PointType& object_point = object_keypoints->at(object_world_corrs->at(j).index_query);
+    PointType& world_point = world_keypoints->at(object_world_corrs->at(j).index_match);
+
+		correspondence_object.push_back(object_point);
+		correspondence_world.push_back(world_point);
+
+		
+		// cout << object_point.x << " " << object_point.y << " " <<  object_point.z << endl;
+		// cout << world_point.x << " " << world_point.y << " " <<  world_point.z << endl;
   }
 
 	PointCloudROS pub_me_object2;
@@ -264,14 +295,25 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
   //  Output results
   //
   std::cout << "Object instances found: " << rototranslations.size () << std::endl;
-  for (size_t i = 0; i < rototranslations.size (); ++i)
+	int maximum = 0;
+	int best;
+	for (int i = 0; i < rototranslations.size (); ++i)
+	{
+		cout << "Instance "<< i << " has " << clustered_corrs[i].size () << " correspondences" << endl;
+		if (maximum < clustered_corrs[i].size ())
+		{
+			maximum = clustered_corrs[i].size ();
+			best = i;
+		}
+	}
+
+  if (rototranslations.size () > 0)
   {
-    std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
-    std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
-    
+		cout << "selecting instance " << best << " and calculating TF" << endl;
+
     // Print the rotation matrix and translation vector
-    Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0, 0);
-    Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+    Eigen::Matrix3f rotation = rototranslations[best].block<3,3>(0, 0);
+    Eigen::Vector3f translation = rototranslations[best].block<3,1>(0, 3);
     
     printf ("\n");
     printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
@@ -305,12 +347,14 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		PointCloud correspondence_object_cluster;
 		PointCloud correspondence_world_cluster;
 		
-		for (int j = 0; j < clustered_corrs[0].size (); ++j)
+		for (int j = 0; j < clustered_corrs[best].size (); ++j)
     {
-      PointType& model_point = object_keypoints->at(clustered_corrs[0][j].index_query);
-      PointType& scene_point = world_keypoints->at(clustered_corrs[0][j].index_match);
+      PointType& model_point = object_keypoints->at(clustered_corrs[best][j].index_query);
+      PointType& scene_point = world_keypoints->at(clustered_corrs[best][j].index_match);
 			correspondence_object_cluster.push_back(model_point);
 			correspondence_world_cluster.push_back(scene_point);
+			//cout << model_point.x << " " << model_point.y << " " <<  model_point.z << endl;
+			//cout << scene_point.x << " " <<  scene_point.y << " " <<  scene_point.z << endl;
     }
 
 		PointCloudROS pub_me_object;
@@ -321,9 +365,5 @@ void cluster(const pcl::CorrespondencesPtr &object_world_corrs)
 		pub_me_world.header.frame_id = "/world";
 		pub_object.publish(pub_me_object);
 		pub_world.publish(pub_me_world);
-
-
-		// only look at the first correspondence
-		break;
   }
 }
