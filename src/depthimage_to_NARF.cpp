@@ -44,8 +44,9 @@ int main (int argc, char** argv)
 	angular_resolution = -1.0;
 	support_size = 0.2f;
 	coordinate_frame = pcl::RangeImage::CAMERA_FRAME;
-	setUnseenToMaxRange = false;
+	setUnseenToMaxRange = true;
 	rotation_invariant = true;
+	output_frame = "/openni2_depth_frame";
 
 	ros::spin();
 	return 0;
@@ -61,22 +62,24 @@ void range_image_incoming (const sensor_msgs::ImageConstPtr& imgMsgPtr)
 	range_image_.setDepthImage(depthImage,imgMsgPtr->width, imgMsgPtr->height, \
 				(imgMsgPtr->width)/2, (imgMsgPtr->height)/2, 600.0, 600.0, angular_resolution);
 	range_image_.setUnseenToMaxRange();
-
   // --------------------------------	
   // -----Extract NARF keypoints-----
   // --------------------------------
+	start = ros::Time::now();
   pcl::RangeImageBorderExtractor range_image_border_extractor;
   pcl::NarfKeypoint narf_keypoint_detector;
   narf_keypoint_detector.setRangeImageBorderExtractor (&range_image_border_extractor);
   narf_keypoint_detector.setRangeImage (&range_image_);
   narf_keypoint_detector.getParameters ().support_size = support_size;
   narf_keypoint_detector.compute (keypoint_indices);
-  std::cout << "Found "<<keypoint_indices.points.size ()<<" key points.\n";
-
+	stop = ros::Time::now();
+  cout << "found "<<keypoint_indices.points.size ()<<" keypoints in ";
+	cout << (stop.toNSec()-start.toNSec())/1000000 << "ms...";
   
   // ------------------------------------------------------
   // -----Extract NARF descriptors for interest points-----
   // ------------------------------------------------------
+	start = ros::Time::now();
   std::vector<int> keypoint_indices2;
   keypoint_indices2.resize (keypoint_indices.points.size ());
   for (unsigned int i=0; i<keypoint_indices.size (); ++i) // This step is necessary to get the right vector type
@@ -85,10 +88,22 @@ void range_image_incoming (const sensor_msgs::ImageConstPtr& imgMsgPtr)
   narf_descriptor.getParameters ().support_size = support_size;
   narf_descriptor.getParameters ().rotation_invariant = rotation_invariant;
   narf_descriptor.compute (narf_descriptors);
-  cout << "Extracted "<<narf_descriptors.size ()<<" descriptors for "
-                      <<keypoint_indices.points.size ()<< " keypoints.\n";
+	stop = ros::Time::now();
+  cout << "Extracted "<<narf_descriptors.size ()<<" descriptors in ";
+	cout << (stop.toNSec()-start.toNSec())/1000000 << "ms\n";
 
 	// convert to ROS message and publish
 	toROSMsg(narf_descriptors,output_descriptors_narf);
 	pub_descriptors.publish(output_descriptors_narf);
+
+
+	cloud_keypoints = PointCloud::Ptr	(new PointCloud ());
+	output_keypoints= KeypointMsg::Ptr	(new  KeypointMsg ());
+	cloud_keypoints->points.resize (keypoint_indices.points.size ());
+	for (int i=0; i<keypoint_indices.points.size (); ++i)
+    cloud_keypoints->points[i].getVector3fMap () = range_image_.points[keypoint_indices.points[i]].getVector3fMap ();
+	pcl::toROSMsg(*cloud_keypoints,*output_keypoints);
+	output_keypoints->header.frame_id = output_frame;
+	pub_keypoints.publish(*output_keypoints);
+	
 }

@@ -35,6 +35,9 @@ ros::Publisher pub_keypoints;
 ros::Publisher pub_descriptors;
 pcl::RangeImage::CoordinateFrame coordinate_frame = pcl::RangeImage::CAMERA_FRAME;
 
+ros::Time start;
+ros::Time stop;
+
 //Algorithm params for NARF descriptor
 float angular_resolution, support_size;
 bool setUnseenToMaxRange, rotation_invariant;
@@ -43,6 +46,7 @@ string output_frame;
 // Point clouds for object, world and its normals, keypoints and descriptors
 pcl::PointCloud<int> keypoint_indices;
 KeypointMsg::Ptr output_keypoints;
+PointCloud::Ptr cloud_keypoints;
 NARFMsg output_descriptors_narf;
 DescriptorCloud narf_descriptors;
 
