@@ -1,6 +1,0 @@
-<launch>
-	<include file="publish_pcds.launch" />
-	<include file="describe_all_shot1344.launch" />
-	<include file="filter_pointclouds.launch" />
-	<include file="recognition.launch" />
-</launch>
