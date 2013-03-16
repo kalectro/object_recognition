@@ -1,0 +1,20 @@
+<launch>
+	<node name="world_describer" pkg="object_recognition" type="pointcloud_descriptor" >
+		<param name="output_frame" value="/world" />
+		<param name="cloud_ss" value="0.02" />
+		<param name="descr_rad" value="0.08" />
+		<remap from="world_describer/input" to="/object_recognition/world/pointcloud/filtered" />		
+		<remap from="world_describer/keypoints" to="/object_recognition/world/keypoints" />
+		<remap from="world_describer/descriptors/Shot1344" to="/object_recognition/world/descriptors/Shot1344" />
+	</node>
+
+	<node name="object_describer" pkg="object_recognition" type="pointcloud_descriptor" >				
+		<param name="output_frame" value="/object" />
+		<param name="cloud_ss" value="0.01" />
+		<param name="descr_rad" value="0.08" />
+		<remap from="object_describer/input" to="/object_recognition/object/pointcloud/raw" />	
+		<remap from="object_describer/keypoints" to="/object_recognition/object/keypoints" />
+		<remap from="object_describer/descriptors/Shot1344" to="/object_recognition/object/descriptors/Shot1344" />									
+	</node>																														
+
+</launch>

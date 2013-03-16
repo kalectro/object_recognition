@@ -1,0 +1,6 @@
+<launch>
+	<include file="$(find object_recognition)/launch/publish_pcds.launch" />
+	<include file="$(find object_recognition)/launch/describe_all_shot1344.launch" />
+	<include file="$(find object_recognition)/launch/filter_pointclouds.launch" />
+	<include file="$(find object_recognition)/launch/recognition.launch" />
+</launch>
