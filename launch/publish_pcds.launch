@@ -6,7 +6,6 @@
 
 	<node name="object_publisher"  pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find object_recognition)/pcds/object0.pcd 2" >
 		<param name="frame_id" value="/object" />
-		<remap from="/cloud_pcd" to="/object_recognition/object/pointcloud/raw" />								
-	</node>																														
-
+		<remap from="/cloud_pcd" to="/object_recognition/object/pointcloud/raw" />
+	</node>
 </launch>
