@@ -9,47 +9,47 @@
 // overloaded function to convert the PCL descriptor type to a custom ROS message
 void toROSMsg(const DescriptorCloud &input, NARFMsg &output)
 {
-	output.descriptors.resize(input.size());
-	for (int j = 0 ; j < input.size() ; ++j)
-	{	
-		output.descriptors[j].x = input[j].x;
-		output.descriptors[j].y = input[j].y;
-		output.descriptors[j].z = input[j].z;
-		output.descriptors[j].roll = input[j].roll;
-		output.descriptors[j].pitch = input[j].pitch;
-		output.descriptors[j].yaw = input[j].yaw;
-		std::copy(input[j].descriptor, input[j].descriptor + 36 , output.descriptors[j].descriptor.begin());
+  output.descriptors.resize(input.size());
+  for (int j = 0 ; j < input.size() ; ++j)
+  {	
+    output.descriptors[j].x = input[j].x;
+    output.descriptors[j].y = input[j].y;
+    output.descriptors[j].z = input[j].z;
+    output.descriptors[j].roll = input[j].roll;
+    output.descriptors[j].pitch = input[j].pitch;
+    output.descriptors[j].yaw = input[j].yaw;
+    std::copy(input[j].descriptor, input[j].descriptor + 36 , output.descriptors[j].descriptor.begin());
 	}
 }
 
 int main (int argc, char** argv)
 {
-	//
-	// take care of the ROS stuff
-	//
-	ros::init(argc, argv, "NARF_descriptor");
-	ros::NodeHandle nh("~");
+  //
+  // take care of the ROS stuff
+  //
+  ros::init(argc, argv, "NARF_descriptor");
+  ros::NodeHandle nh("~");
 
-	// Create a ROS subscriber for the input range image
-	cout << "Setting up image transport...";
-	image_transport::ImageTransport it(nh);
-	image_transport::Subscriber range_image_sub;
-	range_image_sub = it.subscribe("/depth_image", 1, &range_image_incoming);
-	cout << "done" << endl;
+  // Create a ROS subscriber for the input range image
+  cout << "Setting up image transport...";
+  image_transport::ImageTransport it(nh);
+  image_transport::Subscriber range_image_sub;
+  range_image_sub = it.subscribe("/depth_image", 1, &range_image_incoming);
+  cout << "done" << endl;
 
-	// Create a ROS publisher for the output model coefficients
-	pub_keypoints = nh.advertise<KeypointMsg> ("keypoints", 1);
-	pub_descriptors = nh.advertise<NARFMsg> ("/object_recognition/descriptors/NARF", 1);
+  // Create a ROS publisher for the output model coefficients
+  pub_keypoints = nh.advertise<KeypointMsg> ("keypoints", 1);
+  pub_descriptors = nh.advertise<NARFMsg> ("/object_recognition/descriptors/NARF", 1);  
 
-	angular_resolution = -1.0;
-	support_size = 0.2f;
-	coordinate_frame = pcl::RangeImage::CAMERA_FRAME;
-	setUnseenToMaxRange = true;
-	rotation_invariant = true;
-	output_frame = "/openni2_depth_frame";
+  angular_resolution = -1.0;
+  support_size = 0.2f;
+  coordinate_frame = pcl::RangeImage::CAMERA_FRAME;
+  setUnseenToMaxRange = true;
+  rotation_invariant = true;
+  output_frame = "/openni2_depth_frame";
 
-	ros::spin();
-	return 0;
+  ros::spin();
+  return 0;
 }
 
 void range_image_incoming (const sensor_msgs::ImageConstPtr& imgMsgPtr)
@@ -83,16 +83,16 @@ void range_image_incoming (const sensor_msgs::ImageConstPtr& imgMsgPtr)
   std::vector<int> keypoint_indices2;
   keypoint_indices2.resize (keypoint_indices.points.size ());
   for (unsigned int i=0; i<keypoint_indices.size (); ++i) // This step is necessary to get the right vector type
-    keypoint_indices2[i]=keypoint_indices.points[i];
+  keypoint_indices2[i]=keypoint_indices.points[i];
   pcl::NarfDescriptor narf_descriptor (&range_image_, &keypoint_indices2);
   narf_descriptor.getParameters ().support_size = support_size;
   narf_descriptor.getParameters ().rotation_invariant = rotation_invariant;
   narf_descriptor.compute (narf_descriptors);
-	stop = ros::Time::now();
+  stop = ros::Time::now();
   cout << "Extracted "<<narf_descriptors.size ()<<" descriptors in ";
-	cout << (stop.toNSec()-start.toNSec())/1000000 << "ms\n";
+  cout << (stop.toNSec()-start.toNSec())/1000000 << "ms\n";
 
-	// convert to ROS message and publish
+  // convert to ROS message and publish
 	toROSMsg(narf_descriptors,output_descriptors_narf);
 	pub_descriptors.publish(output_descriptors_narf);
 
@@ -103,6 +103,7 @@ void range_image_incoming (const sensor_msgs::ImageConstPtr& imgMsgPtr)
 	for (int i=0; i<keypoint_indices.points.size (); ++i)
     cloud_keypoints->points[i].getVector3fMap () = range_image_.points[keypoint_indices.points[i]].getVector3fMap ();
 	pcl::toROSMsg(*cloud_keypoints,*output_keypoints);
+	
 	output_keypoints->header.frame_id = output_frame;
 	pub_keypoints.publish(*output_keypoints);
 	

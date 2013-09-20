@@ -24,6 +24,8 @@
 #include <tf/transform_broadcaster.h>
 #include <object_recognition/Shot352_bundle.h>
 #include <object_recognition/Shot1344_bundle.h>
+// hydro migration
+#include <pcl_conversions/pcl_conversions.h>
 
 typedef pcl::PointXYZRGB PointType;
 typedef pcl::PointCloud<PointType> PointCloud;

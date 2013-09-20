@@ -23,6 +23,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/common/transforms.h>
+// hydro migration
+#include <pcl_conversions/pcl_conversions.h>
 
 typedef pcl::PointXYZRGB PointType;
 typedef pcl::Normal NormalType;

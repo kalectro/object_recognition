@@ -52,14 +52,31 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
 
 	// Create pass through point cloud for point filtering
-	pcl::PassThrough<sensor_msgs::PointCloud2> pt(false);
+	pcl::PassThrough<PointType> pt(false);
 
 	// Create a pointcloud to store the z filtered cloud
-	PointCloudROS::Ptr cloud_z_filtered (new PointCloudROS);
+	PointCloud::Ptr cloud_z_filtered (new PointCloud);
 
 	// Create a pointcloud to store the voxeled pointcloud
-	PointCloudROS::Ptr cloud_voxeled (new PointCloudROS);
+	pcl::PCLPointCloud2::Ptr cloud_voxeled (new pcl::PCLPointCloud2);
 
+  // Convert ROS message to PCL message
+  PointCloud::Ptr pcl_cloud;
+  pcl::PCLPointCloud2::Ptr pcl_cloud2;
+  pcl_conversions::toPCL(*input, *pcl_cloud2);
+  
+  //
+  // downscale the points
+  //
+  if(apply_voxel)
+  {
+    // Create the filtering object and downsample the dataset using the parameter leaf size
+    pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+    sor.setInputCloud (cloud_voxeled);
+		sor.setLeafSize (voxel_size,voxel_size,voxel_size);
+		sor.filter (*cloud_voxeled);
+	}
+	
 	//
 	// filter z values within a certain range set by parameters
 	//
@@ -72,35 +89,35 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 			return;
 		}
 		// set parameters for z axis filtering
-		pt.setInputCloud(input);
+		if(apply_voxel)
+    {
+      pcl::fromPCLPointCloud2(*cloud_voxeled, *pcl_cloud);
+		  pt.setInputCloud (pcl_cloud);
+    }
+		else
+		{
+		  pcl::fromPCLPointCloud2(*pcl_cloud2, *pcl_cloud);
+			pt.setInputCloud (pcl_cloud);
+    }
 		pt.setKeepOrganized(keep_organized);
 		pt.setFilterFieldName("z");
 		pt.setFilterLimits(z_min, z_max);
 		pt.filter(*cloud_z_filtered);
 	}	
-	
-	//
-	// downscale the points
-	//
-	if(apply_voxel)
-	{
-		// Create the filtering object and downsample the dataset using the parameter leaf size
-		pcl::VoxelGrid<PointCloudROS> sor;
-		if(filter_z)
-			sor.setInputCloud (cloud_z_filtered);
-		else
-			sor.setInputCloud (input);
-		sor.setLeafSize (voxel_size,voxel_size,voxel_size);
-		sor.filter (*cloud_voxeled);
-	}
 
 	// convert the message
-	if (apply_voxel)
-		pcl::fromROSMsg (*cloud_voxeled, *cloud);
-	else if (filter_z)
-		pcl::fromROSMsg (*cloud_z_filtered, *cloud);
+	if (filter_z)
+	{
+	  cloud = cloud_z_filtered;
+  }
+	else if (apply_voxel)
+	{
+	  pcl::fromPCLPointCloud2(*cloud_voxeled, *cloud);
+	}
 	else
-		pcl::fromROSMsg (*input, *cloud);
+	{
+	  pcl::fromPCLPointCloud2(*pcl_cloud2, *cloud);
+	}
 
 	// set maximal distance from point to planar surface to be identified as plane
 	seg_plane.setDistanceThreshold (threshold_plane);

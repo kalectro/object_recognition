@@ -18,6 +18,8 @@
 #include <object_recognition/NARF.h>
 #include <object_recognition/NARF_bundle.h>
 #include <image_transport/image_transport.h>
+// hydro migration
+#include <pcl_conversions/pcl_conversions.h>
 
 typedef pcl::PointXYZ PointType;
 typedef pcl::Normal NormalType;
