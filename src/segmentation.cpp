@@ -72,7 +72,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   {
     // Create the filtering object and downsample the dataset using the parameter leaf size
     pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
-    sor.setInputCloud (cloud_voxeled);
+    sor.setInputCloud (pcl_cloud2);
 		sor.setLeafSize (voxel_size,voxel_size,voxel_size);
 		sor.filter (*cloud_voxeled);
 	}
